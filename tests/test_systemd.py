@@ -14,6 +14,7 @@ from ohanna_installer.manifest import (
 )
 from ohanna_installer.systemd import (
     GeneratedSystemdService,
+    InstalledSystemdService,
     SystemdCommandError,
     SystemdGenerationError,
     SystemdInstallationError,

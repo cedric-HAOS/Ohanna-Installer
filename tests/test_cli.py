@@ -93,6 +93,41 @@ def _build_installed_agent() -> InstalledPythonComponent:
     )
 
 
+def _build_installed_services(
+    manifest: PlatformManifest,
+    directory: Path,
+) -> tuple[InstalledSystemdService, ...]:
+    agent = next(
+        component
+        for component in manifest.components
+        if component.identifier == "agent"
+    )
+    vision = next(
+        component
+        for component in manifest.components
+        if component.identifier == "vision"
+    )
+
+    return (
+        InstalledSystemdService(
+            component=agent,
+            source_path=directory / "ohanna-agent.service",
+            destination_path=Path(
+                "/etc/systemd/system/ohanna-agent.service"
+            ),
+            created=True,
+        ),
+        InstalledSystemdService(
+            component=vision,
+            source_path=directory / "ohanna-vision.service",
+            destination_path=Path(
+                "/etc/systemd/system/ohanna-vision.service"
+            ),
+            created=True,
+        ),
+    )
+
+
 def test_cli_requires_command(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -342,8 +377,23 @@ def test_install_downloads_and_installs_official_components(
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
+        "ohanna_installer.commands.install._generate_services",
+        lambda manifest, directory: (),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_services",
+        lambda generated_services: _build_installed_services(
+            manifest,
+            Path("/tmp/systemd"),
+        ),
+    )
+    monkeypatch.setattr(
         "ohanna_installer.commands.install._reload_systemd",
         lambda: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._enable_services",
+        lambda installed_services: None,
     )
 
     assert main(["install"]) == 0
@@ -357,12 +407,15 @@ def test_install_downloads_and_installs_official_components(
     assert "✓ Ohanna-Agent 1.0.0 installé." in output
     assert "Installation d'Ohanna-Vision" in output
     assert "✓ Ohanna-Vision 1.0.0 installé." in output
-    assert (
-        "Ohanna-Agent et Ohanna-Vision sont installés, "
-        "configurés et leurs services systemd sont en place."
-    ) in output
     assert "Rechargement de systemd" in output
     assert "✓ Configuration systemd rechargée." in output
+    assert "Activation des services systemd" in output
+    assert "✓ ohanna-agent.service activé." in output
+    assert "✓ ohanna-vision.service activé." in output
+    assert (
+        "Ohanna-Agent et Ohanna-Vision sont installés, "
+        "configurés et activés au démarrage."
+    ) in output
 
 
 def test_install_fails_when_component_download_fails(
@@ -456,7 +509,7 @@ def test_install_fails_when_agent_installation_fails(
         vision_installation_called = True
 
         return _build_installed_vision()
-    
+
     monkeypatch.setattr(
         "ohanna_installer.commands.install._install_vision",
         install_vision,
@@ -596,7 +649,7 @@ def test_install_fails_when_systemd_reload_fails(
 
     output = capsys.readouterr().out
 
-    assert "Rechargement systemd impossible" in output
+    assert "Commande systemd impossible" in output
     assert "daemon-reload refusé" in output
 
 def test_install_agent_fails_when_agent_was_not_downloaded() -> None:

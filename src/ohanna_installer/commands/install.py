@@ -291,9 +291,6 @@ def run(args: argparse.Namespace) -> int:
     except SystemdCommandError as error:
         print(f"✗ Commande systemd impossible : {error}")
         return INSTALLATION_ERROR
-    except SystemdCommandError as error:
-        print(f"✗ Rechargement systemd impossible : {error}")
-        return INSTALLATION_ERROR
     except SystemdInstallationError as error:
         print(f"✗ Installation systemd impossible : {error}")
         return INSTALLATION_ERROR
