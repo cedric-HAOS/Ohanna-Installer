@@ -341,11 +341,6 @@ def enable_systemd_service(
 ) -> None:
     """Activer un service systemd au démarrage."""
 
-    if not service_name or Path(service_name).name != service_name:
-        raise SystemdCommandError(
-            f"Nom de service systemd invalide : {service_name!r}."
-        )
-
     _validate_service_name(service_name)
 
     command = [
@@ -384,6 +379,85 @@ def enable_systemd_service(
             f"Impossible d'exécuter systemctl enable "
             f"{service_name} : {error}"
         ) from error
+
+def disable_systemd_service(
+    service_name: str,
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Désactiver un service systemd au démarrage."""
+
+    _validate_service_name(service_name)
+
+    command = [
+        str(systemctl_executable),
+        "disable",
+        service_name,
+    ]
+
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            f"La commande systemctl disable {service_name} "
+            "a dépassé le délai autorisé."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        details = error.stderr.strip() or error.stdout.strip()
+
+        if details:
+            raise SystemdCommandError(
+                f"La commande systemctl disable {service_name} "
+                f"a échoué : {details}"
+            ) from error
+
+        raise SystemdCommandError(
+            f"La commande systemctl disable {service_name} a échoué."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            f"Impossible d'exécuter systemctl disable "
+            f"{service_name} : {error}"
+        ) from error
+
+def remove_systemd_service(
+    service_name: str,
+    *,
+    system_directory: Path | str = SYSTEMD_SYSTEM_DIRECTORY,
+) -> bool:
+    """Supprimer une unité systemd.
+
+    Retourner True si le fichier a été supprimé et False s'il était absent.
+    """
+
+    _validate_service_name(service_name)
+
+    service_path = Path(system_directory) / service_name
+
+    if not service_path.exists():
+        return False
+
+    if not service_path.is_file():
+        raise SystemdInstallationError(
+            f"L'unité systemd {service_path} n'est pas un fichier."
+        )
+
+    try:
+        service_path.unlink()
+    except OSError as error:
+        raise SystemdInstallationError(
+            f"Impossible de supprimer {service_path} : {error}"
+        ) from error
+
+    return True
+
 
 def enable_systemd_services(
     installed_services: tuple[InstalledSystemdService, ...],
@@ -456,11 +530,6 @@ def start_systemd_service(
     """Démarrer un service systemd."""
 
     _validate_service_name(service_name)
-
-    if not service_name.endswith(".service"):
-        raise SystemdCommandError(
-            f"Le nom {service_name!r} doit se terminer par '.service'."
-        )
 
     command = [
         str(systemctl_executable),

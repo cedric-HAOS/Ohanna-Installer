@@ -19,6 +19,7 @@ from ohanna_installer.systemd import (
     SystemdGenerationError,
     SystemdInstallationError,
     SystemdServiceStatus,
+    disable_systemd_service,
     enable_systemd_service,
     generate_component_service,
     generate_systemd_services,
@@ -27,6 +28,7 @@ from ohanna_installer.systemd import (
     install_generated_service,
     install_generated_services,
     reload_systemd_daemon,
+    remove_systemd_service,
     render_systemd_service,
     start_systemd_service,
     start_systemd_services,
@@ -1149,3 +1151,83 @@ def test_stop_systemd_service_runs_expected_command(
         "stop",
         "ohanna-agent.service",
     ]
+
+def test_disable_systemd_service_runs_expected_command(
+    monkeypatch,
+) -> None:
+    received_command: list[str] | None = None
+
+    def fake_run(
+        command: list[str],
+        *,
+        check: bool,
+        capture_output: bool,
+        text: bool,
+        timeout: float,
+    ) -> subprocess.CompletedProcess[str]:
+        nonlocal received_command
+        received_command = command
+
+        assert check is True
+        assert capture_output is True
+        assert text is True
+        assert timeout == 30.0
+
+        return subprocess.CompletedProcess(
+            command,
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        "ohanna_installer.systemd.subprocess.run",
+        fake_run,
+    )
+
+    disable_systemd_service("ohanna-agent.service")
+
+    assert received_command == [
+        "systemctl",
+        "disable",
+        "ohanna-agent.service",
+    ]
+
+def test_remove_systemd_service_removes_existing_unit(
+    tmp_path: Path,
+) -> None:
+    service_path = tmp_path / "ohanna-agent.service"
+    service_path.write_text(
+        "[Unit]\n",
+        encoding="utf-8",
+    )
+
+    removed = remove_systemd_service(
+        "ohanna-agent.service",
+        system_directory=tmp_path,
+    )
+
+    assert removed is True
+    assert service_path.exists() is False
+
+def test_remove_systemd_service_accepts_missing_unit(
+    tmp_path: Path,
+) -> None:
+    removed = remove_systemd_service(
+        "ohanna-agent.service",
+        system_directory=tmp_path,
+    )
+
+    assert removed is False
+
+def test_remove_systemd_service_rejects_invalid_name(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(
+        SystemdCommandError,
+        match="Nom de service systemd invalide",
+    ):
+        remove_systemd_service(
+            "../ohanna-agent.service",
+            system_directory=tmp_path,
+        )

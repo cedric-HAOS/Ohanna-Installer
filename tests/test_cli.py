@@ -167,16 +167,6 @@ def test_cli_displays_help(
     assert "uninstall" in output
     assert "--version" in output
 
-
-def test_cli_runs_unimplemented_uninstall(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    assert main(["uninstall"]) == 0
-    assert (
-        capsys.readouterr().out.strip()
-        == "Désinstallation non encore implémentée."
-    )
-
 @pytest.mark.parametrize(
     "command",
     [
@@ -1168,4 +1158,3 @@ def test_install_fails_when_service_is_not_active(
     assert "Vérification des services systemd" in output
     assert "ohanna-agent.service est failed" in output
     assert "ohanna-vision.service est actif" not in output
-
