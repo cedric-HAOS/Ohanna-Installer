@@ -5,7 +5,10 @@ src/ohanna_installer/__init__.py
 src/ohanna_installer/__main__.py
 src/ohanna_installer/cli.py
 src/ohanna_installer/environment.py
+src/ohanna_installer/github.py
 src/ohanna_installer/manifest.py
+src/ohanna_installer/python_package.py
+src/ohanna_installer/systemd.py
 src/ohanna_installer/version.py
 src/ohanna_installer.egg-info/PKG-INFO
 src/ohanna_installer.egg-info/SOURCES.txt
@@ -19,4 +22,7 @@ src/ohanna_installer/commands/uninstall.py
 src/ohanna_installer/commands/update.py
 tests/test_cli.py
 tests/test_environment.py
+tests/test_github.py
 tests/test_manifest.py
+tests/test_python_package.py
+tests/test_systemd.py

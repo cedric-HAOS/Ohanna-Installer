@@ -26,6 +26,7 @@ from ohanna_installer.systemd import (
     InstalledSystemdService,
     SystemdCommandError,
     SystemdInstallationError,
+    SystemdServiceStatus,
 )
 from ohanna_installer.version import __version__
 
@@ -167,21 +168,14 @@ def test_cli_displays_help(
     assert "--version" in output
 
 
-@pytest.mark.parametrize(
-    ("command", "expected_output"),
-    [
-        ("update", "Mise à jour non encore implémentée."),
-        ("uninstall", "Désinstallation non encore implémentée."),
-    ],
-)
-def test_cli_runs_unimplemented_command(
-    command: str,
-    expected_output: str,
+def test_cli_runs_unimplemented_uninstall(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert main([command]) == 0
-    assert capsys.readouterr().out.strip() == expected_output
-
+    assert main(["uninstall"]) == 0
+    assert (
+        capsys.readouterr().out.strip()
+        == "Désinstallation non encore implémentée."
+    )
 
 @pytest.mark.parametrize(
     "command",
@@ -395,6 +389,25 @@ def test_install_downloads_and_installs_official_components(
         "ohanna_installer.commands.install._enable_services",
         lambda installed_services: None,
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._check_services",
+        lambda installed_services: (
+            SystemdServiceStatus(
+                service_name="ohanna-agent.service",
+                active=True,
+                status="active",
+            ),
+            SystemdServiceStatus(
+                service_name="ohanna-vision.service",
+                active=True,
+                status="active",
+            ),
+        ),
+    )
 
     assert main(["install"]) == 0
 
@@ -412,9 +425,15 @@ def test_install_downloads_and_installs_official_components(
     assert "Activation des services systemd" in output
     assert "✓ ohanna-agent.service activé." in output
     assert "✓ ohanna-vision.service activé." in output
+    assert "Démarrage des services systemd" in output
+    assert "ohanna-agent.service démarré" in output
+    assert "ohanna-vision.service démarré" in output
+    assert "Vérification des services systemd" in output
+    assert "ohanna-agent.service est actif" in output
+    assert "ohanna-vision.service est actif" in output
     assert (
         "Ohanna-Agent et Ohanna-Vision sont installés, "
-        "configurés et activés au démarrage."
+        "configurés, activés et démarrés."
     ) in output
 
 
@@ -437,6 +456,10 @@ def test_install_fails_when_component_download_fails(
     monkeypatch.setattr(
         "ohanna_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
     )
 
     def raise_download_error(
@@ -484,6 +507,10 @@ def test_install_fails_when_agent_installation_fails(
     monkeypatch.setattr(
         "ohanna_installer.commands.install._download_components",
         _build_downloaded_components,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
     )
 
     def raise_installation_error(
@@ -585,6 +612,10 @@ def test_install_agent_creates_environment_and_installs_wheel(
         "ohanna_installer.commands.install._reload_systemd",
         lambda: None,
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
 
     from ohanna_installer.commands.install import _install_agent
 
@@ -643,6 +674,10 @@ def test_install_fails_when_systemd_reload_fails(
     monkeypatch.setattr(
         "ohanna_installer.commands.install._reload_systemd",
         raise_reload_error,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
     )
 
     assert main(["install"]) == 3
@@ -726,6 +761,10 @@ def test_install_fails_when_vision_installation_fails(
         "ohanna_installer.commands.install._install_vision",
         raise_installation_error,
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
 
     assert main(["install"]) == 3
 
@@ -808,6 +847,10 @@ def test_install_vision_creates_environment_and_installs_wheel(
         "ohanna_installer.commands.install._install_services",
         lambda generated_services: (),
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
 
     from ohanna_installer.commands.install import _install_vision
 
@@ -885,6 +928,10 @@ def test_install_fails_when_systemd_installation_fails(
         "ohanna_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
 
     def raise_systemd_error(
         generated_services: tuple[GeneratedSystemdService, ...],
@@ -950,6 +997,10 @@ def test_install_fails_when_systemd_enable_fails(
         "ohanna_installer.commands.install._reload_systemd",
         lambda: None,
     )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
 
     def raise_enable_error(
         installed_services: tuple[InstalledSystemdService, ...],
@@ -970,3 +1021,151 @@ def test_install_fails_when_systemd_enable_fails(
 
     assert "Commande systemd impossible" in output
     assert "activation refusée" in output
+
+def test_install_fails_when_systemd_start_fails(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._download_components",
+        _build_downloaded_components,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_agent",
+        lambda downloaded_components: _build_installed_agent(),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_vision",
+        lambda downloaded_components: _build_installed_vision(),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._generate_services",
+        lambda manifest, directory: (),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_services",
+        lambda generated_services: (),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._reload_systemd",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._enable_services",
+        lambda installed_services: None,
+    )
+
+    def raise_start_error(
+        installed_services: tuple[InstalledSystemdService, ...],
+    ) -> None:
+        del installed_services
+        raise SystemdCommandError("démarrage refusé")
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        raise_start_error,
+    )
+
+    assert main(["install"]) == 3
+
+    output = capsys.readouterr().out
+
+    assert "Démarrage des services systemd" in output
+    assert "Commande systemd impossible" in output
+    assert "démarrage refusé" in output
+
+def test_install_fails_when_service_is_not_active(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._download_components",
+        _build_downloaded_components,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_agent",
+        lambda downloaded_components: _build_installed_agent(),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_vision",
+        lambda downloaded_components: _build_installed_vision(),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._generate_services",
+        lambda manifest, directory: (),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._install_services",
+        lambda generated_services: _build_installed_services(
+            manifest,
+            Path("/tmp/systemd"),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._reload_systemd",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._enable_services",
+        lambda installed_services: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._start_services",
+        lambda installed_services: None,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._check_services",
+        lambda installed_services: (
+            SystemdServiceStatus(
+                service_name="ohanna-agent.service",
+                active=False,
+                status="failed",
+            ),
+            SystemdServiceStatus(
+                service_name="ohanna-vision.service",
+                active=True,
+                status="active",
+            ),
+        ),
+    )
+
+    assert main(["install"]) == 3
+
+    output = capsys.readouterr().out
+
+    assert "Vérification des services systemd" in output
+    assert "ohanna-agent.service est failed" in output
+    assert "ohanna-vision.service est actif" not in output
+

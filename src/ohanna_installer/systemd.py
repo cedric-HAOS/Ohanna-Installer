@@ -24,6 +24,14 @@ class SystemdInstallationError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class SystemdServiceStatus:
+    """État d'un service systemd."""
+
+    service_name: str
+    active: bool
+    status: str
+
+@dataclass(frozen=True)
 class InstalledSystemdService:
     """Unité systemd installée sur le système."""
 
@@ -31,6 +39,7 @@ class InstalledSystemdService:
     source_path: Path
     destination_path: Path
     created: bool
+    updated: bool = False
 
 
 class SystemdGenerationError(RuntimeError):
@@ -44,6 +53,48 @@ class GeneratedSystemdService:
     component: ComponentManifest
     path: Path
     content: str
+
+def get_systemd_service_status(
+    service_name: str,
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> SystemdServiceStatus:
+    """Retourner l'état d'un service systemd."""
+
+    _validate_service_name(service_name)
+
+    command = [
+        str(systemctl_executable),
+        "is-active",
+        service_name,
+    ]
+
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            "La vérification du service systemd a dépassé "
+            "le délai autorisé."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            f"Commande systemd impossible : {error}"
+        ) from error
+
+    status = result.stdout.strip() or "unknown"
+
+    return SystemdServiceStatus(
+        service_name=service_name,
+        active=status == "active",
+        status=status,
+    )
 
 def reload_systemd_daemon(
     *,
@@ -185,6 +236,7 @@ def install_generated_service(
     generated_service: GeneratedSystemdService,
     *,
     system_directory: Path | str = SYSTEMD_SYSTEM_DIRECTORY,
+    replace: bool = False,
 ) -> InstalledSystemdService:
     """Installer une unité systemd générée."""
 
@@ -215,11 +267,31 @@ def install_generated_service(
                 source_path=source_path,
                 destination_path=destination_path,
                 created=False,
+                updated=False,
             )
 
-        raise SystemdInstallationError(
-            f"L'unité {destination_path} existe déjà "
-            "avec un contenu différent."
+        if not replace:
+            raise SystemdInstallationError(
+                f"L'unité {destination_path} existe déjà "
+                "avec un contenu différent."
+            )
+
+        try:
+            shutil.copy2(
+                source_path,
+                destination_path,
+            )
+        except OSError as error:
+            raise SystemdInstallationError(
+                f"Impossible de remplacer {destination_path} : {error}"
+            ) from error
+
+        return InstalledSystemdService(
+            component=generated_service.component,
+            source_path=source_path,
+            destination_path=destination_path,
+            created=False,
+            updated=True,
         )
 
     try:
@@ -241,12 +313,14 @@ def install_generated_service(
         source_path=source_path,
         destination_path=destination_path,
         created=True,
+        updated=False,
     )
 
 def install_generated_services(
     generated_services: tuple[GeneratedSystemdService, ...],
     *,
     system_directory: Path | str = SYSTEMD_SYSTEM_DIRECTORY,
+    replace: bool = False,
 ) -> tuple[InstalledSystemdService, ...]:
     """Installer plusieurs unités systemd générées."""
 
@@ -254,6 +328,7 @@ def install_generated_services(
         install_generated_service(
             generated_service,
             system_directory=system_directory,
+            replace=replace,
         )
         for generated_service in generated_services
     )
@@ -271,10 +346,7 @@ def enable_systemd_service(
             f"Nom de service systemd invalide : {service_name!r}."
         )
 
-    if not service_name.endswith(".service"):
-        raise SystemdCommandError(
-            f"Le nom {service_name!r} doit se terminer par '.service'."
-        )
+    _validate_service_name(service_name)
 
     command = [
         str(systemctl_executable),
@@ -326,4 +398,148 @@ def enable_systemd_services(
             installed_service.destination_path.name,
             systemctl_executable=systemctl_executable,
             timeout=timeout,
+        )
+
+def stop_systemd_service(
+    service_name: str,
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Arrêter un service systemd."""
+
+    _validate_service_name(service_name)
+
+    command = [
+        str(systemctl_executable),
+        "stop",
+        service_name,
+    ]
+
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            f"La commande systemctl stop {service_name} "
+            "a dépassé le délai autorisé."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        details = error.stderr.strip() or error.stdout.strip()
+
+        if details:
+            raise SystemdCommandError(
+                f"La commande systemctl stop {service_name} "
+                f"a échoué : {details}"
+            ) from error
+
+        raise SystemdCommandError(
+            f"La commande systemctl stop {service_name} a échoué."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            f"Impossible d'exécuter systemctl stop "
+            f"{service_name} : {error}"
+        ) from error
+
+def start_systemd_service(
+    service_name: str,
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Démarrer un service systemd."""
+
+    _validate_service_name(service_name)
+
+    if not service_name.endswith(".service"):
+        raise SystemdCommandError(
+            f"Le nom {service_name!r} doit se terminer par '.service'."
+        )
+
+    command = [
+        str(systemctl_executable),
+        "start",
+        service_name,
+    ]
+
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            f"La commande systemctl start {service_name} "
+            "a dépassé le délai autorisé."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        details = error.stderr.strip() or error.stdout.strip()
+
+        if details:
+            raise SystemdCommandError(
+                f"La commande systemctl start {service_name} "
+                f"a échoué : {details}"
+            ) from error
+
+        raise SystemdCommandError(
+            f"La commande systemctl start {service_name} a échoué."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            f"Impossible d'exécuter systemctl start "
+            f"{service_name} : {error}"
+        ) from error
+
+def start_systemd_services(
+    installed_services: tuple[InstalledSystemdService, ...],
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Démarrer plusieurs services systemd."""
+
+    for installed_service in installed_services:
+        start_systemd_service(
+            installed_service.destination_path.name,
+            systemctl_executable=systemctl_executable,
+            timeout=timeout,
+        )
+
+def get_systemd_services_status(
+    installed_services: tuple[InstalledSystemdService, ...],
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> tuple[SystemdServiceStatus, ...]:
+    """Retourner l'état de tous les services systemd installés."""
+
+    return tuple(
+        get_systemd_service_status(
+            installed_service.destination_path.name,
+            systemctl_executable=systemctl_executable,
+            timeout=timeout,
+        )
+        for installed_service in installed_services
+    )
+
+def _validate_service_name(service_name: str) -> None:
+    """Valider un nom de service systemd."""
+
+    if not service_name or Path(service_name).name != service_name:
+        raise SystemdCommandError(
+            f"Nom de service systemd invalide : {service_name!r}."
+        )
+
+    if not service_name.endswith(".service"):
+        raise SystemdCommandError(
+            f"Le nom {service_name!r} doit se terminer par '.service'."
         )

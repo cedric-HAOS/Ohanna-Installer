@@ -27,10 +27,13 @@ from ohanna_installer.systemd import (
     SystemdCommandError,
     SystemdGenerationError,
     SystemdInstallationError,
+    SystemdServiceStatus,
     enable_systemd_services,
     generate_systemd_services,
+    get_systemd_services_status,
     install_generated_services,
     reload_systemd_daemon,
+    start_systemd_services,
 )
 
 INSTALLATION_ERROR = 3
@@ -287,6 +290,28 @@ def run(args: argparse.Namespace) -> int:
                 print(
                     f"✓ {installed_service.destination_path.name} activé."
                 )
+            print()
+            print("Démarrage des services systemd...")
+
+            _start_services(installed_services)
+
+            for installed_service in installed_services:
+                print(
+                    f"✓ {installed_service.destination_path.name} démarré."
+                )
+            print()
+            print("Vérification des services systemd...")
+
+            statuses = _check_services(installed_services)
+
+            for status in statuses:
+                if status.active:
+                    print(f"✓ {status.service_name} est actif.")
+                else:
+                    print(
+                        f"✗ {status.service_name} est {status.status}."
+                    )
+                    return INSTALLATION_ERROR
 
     except SystemdCommandError as error:
         print(f"✗ Commande systemd impossible : {error}")
@@ -310,7 +335,7 @@ def run(args: argparse.Namespace) -> int:
     print()
     print(
         "Ohanna-Agent et Ohanna-Vision sont installés, "
-        "configurés et activés au démarrage."
+        "configurés, activés et démarrés."
     )
 
     return 0
@@ -341,3 +366,17 @@ def _enable_services(
     """Activer les services systemd installés."""
 
     enable_systemd_services(installed_services)
+
+def _start_services(
+    installed_services: tuple[InstalledSystemdService, ...],
+) -> None:
+    """Démarrer les services systemd installés."""
+
+    start_systemd_services(installed_services)
+
+def _check_services(
+    installed_services: tuple[InstalledSystemdService, ...],
+) -> tuple[SystemdServiceStatus, ...]:
+    """Vérifier l'état des services systemd."""
+
+    return get_systemd_services_status(installed_services)

@@ -3,6 +3,39 @@
 from __future__ import annotations
 
 import argparse
+import tempfile
+from pathlib import Path
+
+from ohanna_installer.commands.install import (
+    _check_services,
+    _display_check,
+    _display_manifest,
+    _download_components,
+    _enable_services,
+    _generate_services,
+    _install_agent,
+    _install_vision,
+    _load_official_manifest,
+    _reload_systemd,
+    _start_services,
+)
+from ohanna_installer.environment import run_environment_checks
+from ohanna_installer.github import DownloadError
+from ohanna_installer.manifest import ManifestError
+from ohanna_installer.python_package import (
+    PackageInstallationError,
+)
+from ohanna_installer.systemd import (
+    GeneratedSystemdService,
+    InstalledSystemdService,
+    SystemdCommandError,
+    SystemdGenerationError,
+    SystemdInstallationError,
+    install_generated_services,
+    stop_systemd_service,
+)
+
+UPDATE_ERROR = 3
 
 
 def configure_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -21,10 +54,210 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(command_handler=run)
 
 
+def _stop_services(
+    generated_services: tuple[GeneratedSystemdService, ...],
+) -> None:
+    """Arrêter les services systemd avant leur mise à jour."""
+
+    for generated_service in generated_services:
+        stop_systemd_service(generated_service.path.name)
+
+
+def _replace_services(
+    generated_services: tuple[GeneratedSystemdService, ...],
+) -> tuple[InstalledSystemdService, ...]:
+    """Installer ou remplacer les unités systemd."""
+
+    return install_generated_services(
+        generated_services,
+        replace=True,
+    )
+
+
 def run(args: argparse.Namespace) -> int:
     """Exécuter la commande update."""
 
     del args
 
-    print("Mise à jour non encore implémentée.")
+    print("Vérification de l'environnement...")
+    print()
+
+    checks = run_environment_checks()
+
+    for check in checks:
+        _display_check(check)
+
+    print()
+
+    if not all(check.success for check in checks):
+        print("L'environnement ne permet pas de poursuivre la mise à jour.")
+        return UPDATE_ERROR
+
+    print("L'environnement est compatible avec Ohanna-Installer.")
+    print()
+    print("Téléchargement du manifeste officiel...")
+
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix="ohanna-installer-update-",
+        ) as temporary_directory:
+            temporary_path = Path(temporary_directory)
+
+            manifest = _load_official_manifest(temporary_path)
+
+            print("✓ Manifeste téléchargé et validé.")
+            print()
+
+            _display_manifest(manifest)
+
+            print()
+            print("Téléchargement des composants...")
+
+            downloaded_components = _download_components(
+                manifest,
+                temporary_path,
+            )
+
+            for downloaded_component in downloaded_components:
+                component = downloaded_component.component
+                print(
+                    f"✓ {component.name} "
+                    f"{component.version} téléchargé."
+                )
+
+            print()
+            print("Génération des services systemd...")
+
+            generated_services = _generate_services(
+                manifest,
+                temporary_path,
+            )
+
+            for generated_service in generated_services:
+                print(
+                    f"✓ {generated_service.path.name} généré "
+                    f"pour {generated_service.component.name}."
+                )
+
+            print()
+            print("Arrêt des services systemd...")
+
+            _stop_services(generated_services)
+
+            for generated_service in generated_services:
+                print(f"✓ {generated_service.path.name} arrêté.")
+
+            print()
+            print("Mise à jour d'Ohanna-Agent...")
+
+            installed_agent = _install_agent(downloaded_components)
+
+            print(
+                f"✓ {installed_agent.name} "
+                f"{installed_agent.version} mis à jour."
+            )
+
+            print()
+            print("Mise à jour d'Ohanna-Vision...")
+
+            installed_vision = _install_vision(
+                downloaded_components,
+            )
+
+            print(
+                f"✓ {installed_vision.name} "
+                f"{installed_vision.version} mis à jour."
+            )
+
+            print()
+            print("Mise à jour des services systemd...")
+
+            installed_services = _replace_services(
+                generated_services,
+            )
+
+            for installed_service in installed_services:
+                destination = installed_service.destination_path
+
+                if installed_service.created:
+                    print(f"✓ {destination} installé.")
+                elif installed_service.updated:
+                    print(f"✓ {destination} remplacé.")
+                else:
+                    print(
+                        f"✓ {destination} conservé "
+                        "(déjà identique)."
+                    )
+
+            print()
+            print("Rechargement de systemd...")
+
+            _reload_systemd()
+
+            print("✓ Configuration systemd rechargée.")
+
+            print()
+            print("Activation des services systemd...")
+
+            _enable_services(installed_services)
+
+            for installed_service in installed_services:
+                print(
+                    f"✓ {installed_service.destination_path.name} activé."
+                )
+
+            print()
+            print("Redémarrage des services systemd...")
+
+            _start_services(installed_services)
+
+            for installed_service in installed_services:
+                print(
+                    f"✓ {installed_service.destination_path.name} démarré."
+                )
+
+            print()
+            print("Vérification des services systemd...")
+
+            statuses = _check_services(installed_services)
+
+            all_services_active = True
+
+            for status in statuses:
+                if status.active:
+                    print(f"✓ {status.service_name} est actif.")
+                else:
+                    print(
+                        f"✗ {status.service_name} est {status.status}."
+                    )
+                    all_services_active = False
+
+            if not all_services_active:
+                return UPDATE_ERROR
+
+    except SystemdCommandError as error:
+        print(f"✗ Commande systemd impossible : {error}")
+        return UPDATE_ERROR
+    except SystemdInstallationError as error:
+        print(f"✗ Mise à jour systemd impossible : {error}")
+        return UPDATE_ERROR
+    except SystemdGenerationError as error:
+        print(f"✗ Génération systemd impossible : {error}")
+        return UPDATE_ERROR
+    except DownloadError as error:
+        print(f"✗ Téléchargement impossible : {error}")
+        return UPDATE_ERROR
+    except ManifestError as error:
+        print(f"✗ Le manifeste officiel est invalide : {error}")
+        return UPDATE_ERROR
+    except PackageInstallationError as error:
+        print(f"✗ Mise à jour impossible : {error}")
+        return UPDATE_ERROR
+
+    print()
+    print(
+        "Ohanna-Agent et Ohanna-Vision sont mis à jour, "
+        "redémarrés et vérifiés."
+    )
+
     return 0
