@@ -1,0 +1,33 @@
+schema_version: 1
+
+platform:
+  name: Ohanna
+  version: "1.0.0"
+
+runtime:
+  python:
+    minimum_version: "3.12"
+
+components:
+  agent:
+    name: Ohanna-Agent
+    repository: cedric-HAOS/Ohanna-Agent
+    version: "1.0.0"
+    release_tag: v1.0.0
+    package:
+      type: wheel
+      filename: ohanna_agent-1.0.0-py3-none-any.whl
+
+  vision:
+    name: Ohanna-Vision
+    repository: cedric-HAOS/Ohanna-Vision
+    version: "1.0.0"
+    release_tag: v1.0.0
+    package:
+      type: wheel
+      filename: ohanna_vision-1.0.0-py3-none-any.whl
+
+compatibility:
+  operating_system:
+    family: Linux
+    service_manager: systemd

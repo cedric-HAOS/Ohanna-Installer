@@ -1,3 +1,33 @@
+Metadata-Version: 2.4
+Name: ohanna-installer
+Version: 0.1.0
+Summary: Installateur officiel de l'écosystème Ohanna
+Author: Cédric Harnois
+License: MIT
+Project-URL: Repository, https://github.com/cedric-HAOS/Ohanna-Installer
+Project-URL: Issues, https://github.com/cedric-HAOS/Ohanna-Installer/issues
+Keywords: ohanna,installer,deployment,systemd,linux
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: System :: Installation/Setup
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: PyYAML>=6.0
+Provides-Extra: dev
+Requires-Dist: build>=1.2; extra == "dev"
+Requires-Dist: pytest>=8.3; extra == "dev"
+Requires-Dist: pytest-cov>=6.0; extra == "dev"
+Requires-Dist: ruff>=0.12; extra == "dev"
+Dynamic: license-file
+
 # Ohanna-Installer
 
 > Installateur officiel de l'écosystème Ohanna.

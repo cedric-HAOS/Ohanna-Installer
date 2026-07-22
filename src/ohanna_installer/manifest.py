@@ -1,0 +1,602 @@
+"""Chargement et validation du manifeste de plateforme."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+import yaml
+
+SUPPORTED_SCHEMA_VERSION = 1
+
+
+class ManifestError(ValueError):
+    """Erreur rencontrée lors du chargement ou de la validation du manifeste."""
+
+@dataclass(frozen=True)
+class ComponentService:
+    """Contrat systemd officiel d'un composant."""
+
+    filename: str
+    description: str
+    user: str
+    group: str
+    working_directory: Path
+    executable: Path
+    arguments: tuple[str, ...]
+
+@dataclass(frozen=True)
+class ConfigurationFile:
+    """Fichier de configuration officiel."""
+
+    source: str
+    destination: Path
+
+
+@dataclass(frozen=True)
+class ComponentConfiguration:
+    """Configuration officielle d'un composant."""
+
+    directory: Path
+    files: tuple[ConfigurationFile, ...]
+
+
+@dataclass(frozen=True)
+class ComponentPackage:
+    """Package Python distribué pour un composant Ohanna."""
+
+    type: str
+    filename: str
+
+
+@dataclass(frozen=True)
+class ComponentManifest:
+    """Description d'un composant installable."""
+
+    identifier: str
+    name: str
+    repository: str
+    version: str
+    release_tag: str
+    package: ComponentPackage
+    configuration: ComponentConfiguration | None = None
+    service: ComponentService | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeManifest:
+    """Contraintes d'exécution de la plateforme."""
+
+    minimum_python_version: str
+
+
+@dataclass(frozen=True)
+class CompatibilityManifest:
+    """Compatibilité système déclarée par la plateforme."""
+
+    operating_system_family: str
+    service_manager: str
+
+
+@dataclass(frozen=True)
+class PlatformManifest:
+    """Manifeste validé d'une release Ohanna-Platform."""
+
+    schema_version: int
+    platform_name: str
+    platform_version: str
+    runtime: RuntimeManifest
+    components: tuple[ComponentManifest, ...]
+    compatibility: CompatibilityManifest
+
+
+def load_manifest(path: Path | str) -> PlatformManifest:
+    """Charger et valider un manifeste depuis un fichier YAML."""
+
+    manifest_path = Path(path)
+
+    try:
+        raw_content = manifest_path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ManifestError(
+            f"Impossible de lire le manifeste {manifest_path}: {error}"
+        ) from error
+
+    try:
+        raw_manifest = yaml.safe_load(raw_content)
+    except yaml.YAMLError as error:
+        raise ManifestError(
+            f"Le manifeste {manifest_path} contient un YAML invalide: {error}"
+        ) from error
+
+    return parse_manifest(raw_manifest)
+
+
+def parse_manifest(raw_manifest: Any) -> PlatformManifest:
+    """Valider et convertir un manifeste YAML brut."""
+
+    root = _require_mapping(raw_manifest, "manifest")
+
+    schema_version = _require_integer(
+        root,
+        "schema_version",
+        "manifest",
+    )
+
+    if schema_version != SUPPORTED_SCHEMA_VERSION:
+        raise ManifestError(
+            "Version de schéma non prise en charge : "
+            f"{schema_version}. Version attendue : {SUPPORTED_SCHEMA_VERSION}."
+        )
+
+    platform = _require_mapping(
+        root.get("platform"),
+        "platform",
+    )
+    platform_name = _require_non_empty_string(
+        platform,
+        "name",
+        "platform",
+    )
+    platform_version = _require_non_empty_string(
+        platform,
+        "version",
+        "platform",
+    )
+
+    runtime = _parse_runtime(root.get("runtime"))
+    components = _parse_components(root.get("components"))
+    compatibility = _parse_compatibility(
+        root.get("compatibility")
+    )
+
+    return PlatformManifest(
+        schema_version=schema_version,
+        platform_name=platform_name,
+        platform_version=platform_version,
+        runtime=runtime,
+        components=components,
+        compatibility=compatibility,
+    )
+
+
+def build_release_download_url(
+    component: ComponentManifest,
+) -> str:
+    """Construire l'URL de téléchargement du package d'un composant."""
+
+    return (
+        f"https://github.com/{component.repository}/releases/download/"
+        f"{component.release_tag}/{component.package.filename}"
+    )
+
+
+def _parse_runtime(raw_runtime: Any) -> RuntimeManifest:
+    runtime = _require_mapping(
+        raw_runtime,
+        "runtime",
+    )
+    python = _require_mapping(
+        runtime.get("python"),
+        "runtime.python",
+    )
+
+    minimum_version = _require_non_empty_string(
+        python,
+        "minimum_version",
+        "runtime.python",
+    )
+
+    return RuntimeManifest(
+        minimum_python_version=minimum_version,
+    )
+
+
+def _parse_components(
+    raw_components: Any,
+) -> tuple[ComponentManifest, ...]:
+    """Valider les composants déclarés dans le manifeste."""
+
+    components = _require_mapping(
+        raw_components,
+        "components",
+    )
+
+    if not components:
+        raise ManifestError(
+            "La section components ne peut pas être vide."
+        )
+
+    parsed_components = tuple(
+        _parse_component(identifier, raw_component)
+        for identifier, raw_component in components.items()
+    )
+
+    identifiers = [
+        component.identifier
+        for component in parsed_components
+    ]
+
+    if len(identifiers) != len(set(identifiers)):
+        raise ManifestError(
+            "Le manifeste contient plusieurs composants "
+            "avec le même identifiant."
+        )
+
+    return parsed_components
+    
+def _parse_component(
+    identifier: Any,
+    raw_component: Any,
+) -> ComponentManifest:
+    if not isinstance(identifier, str) or not identifier.strip():
+        raise ManifestError(
+            "Chaque composant doit posséder "
+            "un identifiant textuel non vide."
+        )
+
+    normalized_identifier = identifier.strip()
+    component_path = f"components.{normalized_identifier}"
+    component = _require_mapping(
+        raw_component,
+        component_path,
+    )
+
+    package_data = _require_mapping(
+        component.get("package"),
+        f"{component_path}.package",
+    )
+
+    package_type = _require_non_empty_string(
+        package_data,
+        "type",
+        f"{component_path}.package",
+    )
+
+    if package_type != "wheel":
+        raise ManifestError(
+            f"{component_path}.package.type "
+            "doit être égal à 'wheel'."
+        )
+
+    package = ComponentPackage(
+        type=package_type,
+        filename=_require_non_empty_string(
+            package_data,
+            "filename",
+            f"{component_path}.package",
+        ),
+    )
+
+    if not package.filename.endswith(".whl"):
+        raise ManifestError(
+            f"{component_path}.package.filename "
+            "doit désigner un fichier .whl."
+        )
+
+    repository = _require_non_empty_string(
+        component,
+        "repository",
+        component_path,
+    )
+
+    if repository.count("/") != 1:
+        raise ManifestError(
+            f"{component_path}.repository doit respecter "
+            "le format owner/repository."
+        )
+
+    raw_configuration = component.get("configuration")
+
+    configuration = (
+        _parse_configuration(
+            raw_configuration,
+            component_path,
+        )
+        if raw_configuration is not None
+        else None
+    )
+
+    raw_service = component.get("service")
+
+    service = (
+        _parse_service(
+            raw_service,
+            component_path,
+        )
+        if raw_service is not None
+        else None
+    )
+
+    return ComponentManifest(
+        identifier=normalized_identifier,
+        name=_require_non_empty_string(
+            component,
+            "name",
+            component_path,
+        ),
+        repository=repository,
+        version=_require_non_empty_string(
+            component,
+            "version",
+            component_path,
+        ),
+        release_tag=_require_non_empty_string(
+            component,
+            "release_tag",
+            component_path,
+        ),
+        package=package,
+        configuration=configuration,
+        service=service,
+    )
+
+
+def _parse_configuration(
+    raw_configuration: Any,
+    component_path: str,
+) -> ComponentConfiguration:
+    configuration_path = (
+        f"{component_path}.configuration"
+    )
+
+    configuration = _require_mapping(
+        raw_configuration,
+        configuration_path,
+    )
+
+    directory_value = _require_non_empty_string(
+        configuration,
+        "directory",
+        configuration_path,
+    )
+    directory_path = PurePosixPath(directory_value)
+
+    if not directory_path.is_absolute():
+        raise ManifestError(
+            f"{configuration_path}.directory "
+            "doit être un chemin absolu."
+        )
+
+    directory = Path(directory_value)
+
+    raw_files = configuration.get("files")
+
+    if not isinstance(raw_files, list) or not raw_files:
+        raise ManifestError(
+            f"{configuration_path}.files "
+            "doit être une liste non vide."
+        )
+
+    files: list[ConfigurationFile] = []
+
+    for index, raw_file in enumerate(raw_files):
+        file_path = (
+            f"{configuration_path}.files[{index}]"
+        )
+        file_data = _require_mapping(
+            raw_file,
+            file_path,
+        )
+
+        source = _require_non_empty_string(
+            file_data,
+            "source",
+            file_path,
+        )
+        destination_value = _require_non_empty_string(
+            file_data,
+            "destination",
+            file_path,
+        )
+
+        source_path = PurePosixPath(source)
+        destination_path = PurePosixPath(destination_value)
+
+        if source_path.is_absolute():
+            raise ManifestError(
+                f"{file_path}.source doit être relatif."
+            )
+
+        if ".." in source_path.parts:
+            raise ManifestError(
+                f"{file_path}.source "
+                "ne peut pas contenir '..'."
+            )
+
+        if destination_path.is_absolute():
+            raise ManifestError(
+                f"{file_path}.destination doit être relatif."
+            )
+
+        if ".." in destination_path.parts:
+            raise ManifestError(
+                f"{file_path}.destination "
+                "ne peut pas contenir '..'."
+            )
+
+        files.append(
+            ConfigurationFile(
+                source=source,
+                destination=Path(destination_value),
+            )
+        )
+
+    return ComponentConfiguration(
+        directory=directory,
+        files=tuple(files),
+    )
+
+
+def _parse_compatibility(
+    raw_compatibility: Any,
+) -> CompatibilityManifest:
+    compatibility = _require_mapping(
+        raw_compatibility,
+        "compatibility",
+    )
+    operating_system = _require_mapping(
+        compatibility.get("operating_system"),
+        "compatibility.operating_system",
+    )
+
+    return CompatibilityManifest(
+        operating_system_family=_require_non_empty_string(
+            operating_system,
+            "family",
+            "compatibility.operating_system",
+        ),
+        service_manager=_require_non_empty_string(
+            operating_system,
+            "service_manager",
+            "compatibility.operating_system",
+        ),
+    )
+
+
+def _require_mapping(
+    value: Any,
+    path: str,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ManifestError(
+            f"{path} doit être un objet YAML."
+        )
+
+    return value
+
+
+def _require_non_empty_string(
+    mapping: dict[str, Any],
+    key: str,
+    path: str,
+) -> str:
+    value = mapping.get(key)
+
+    if not isinstance(value, str) or not value.strip():
+        raise ManifestError(
+            f"{path}.{key} doit être "
+            "une chaîne de caractères non vide."
+        )
+
+    return value.strip()
+
+
+def _require_integer(
+    mapping: dict[str, Any],
+    key: str,
+    path: str,
+) -> int:
+    value = mapping.get(key)
+
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ManifestError(
+            f"{path}.{key} doit être un entier."
+        )
+
+    return value
+
+def _parse_service(
+    raw_service: Any,
+    component_path: str,
+) -> ComponentService:
+    """Valider le contrat systemd d'un composant."""
+
+    service_path = f"{component_path}.service"
+    service = _require_mapping(
+        raw_service,
+        service_path,
+    )
+
+    filename = _require_non_empty_string(
+        service,
+        "filename",
+        service_path,
+    )
+
+    if Path(filename).name != filename:
+        raise ManifestError(
+            f"{service_path}.filename doit être un simple nom de fichier."
+        )
+
+    if not filename.endswith(".service"):
+        raise ManifestError(
+            f"{service_path}.filename doit se terminer par '.service'."
+        )
+
+    working_directory_value = _require_non_empty_string(
+        service,
+        "working_directory",
+        service_path,
+    )
+    executable_value = _require_non_empty_string(
+        service,
+        "executable",
+        service_path,
+    )
+
+    working_directory_path = PurePosixPath(
+        working_directory_value
+    )
+    executable_path = PurePosixPath(
+        executable_value
+    )
+
+    if not working_directory_path.is_absolute():
+        raise ManifestError(
+            f"{service_path}.working_directory "
+            "doit être un chemin absolu."
+        )
+
+    if not executable_path.is_absolute():
+        raise ManifestError(
+            f"{service_path}.executable "
+            "doit être un chemin absolu."
+        )
+
+    raw_arguments = service.get("arguments", [])
+
+    if not isinstance(raw_arguments, list):
+        raise ManifestError(
+            f"{service_path}.arguments doit être une liste."
+        )
+
+    arguments: list[str] = []
+
+    for index, argument in enumerate(raw_arguments):
+        if not isinstance(argument, str) or not argument:
+            raise ManifestError(
+                f"{service_path}.arguments[{index}] "
+                "doit être une chaîne non vide."
+            )
+
+        if "\n" in argument or "\r" in argument:
+            raise ManifestError(
+                f"{service_path}.arguments[{index}] "
+                "ne peut pas contenir de saut de ligne."
+            )
+
+        arguments.append(argument)
+
+    return ComponentService(
+        filename=filename,
+        description=_require_non_empty_string(
+            service,
+            "description",
+            service_path,
+        ),
+        user=_require_non_empty_string(
+            service,
+            "user",
+            service_path,
+        ),
+        group=_require_non_empty_string(
+            service,
+            "group",
+            service_path,
+        ),
+        working_directory=Path(working_directory_value),
+        executable=Path(executable_value),
+        arguments=tuple(arguments),
+    )

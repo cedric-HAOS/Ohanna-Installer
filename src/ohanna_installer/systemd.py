@@ -1,0 +1,329 @@
+"""Génération des unités systemd officielles Ohanna."""
+
+from __future__ import annotations
+
+import shlex
+import shutil
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+
+from ohanna_installer.manifest import (
+    ComponentManifest,
+    ComponentService,
+)
+
+SYSTEMD_SYSTEM_DIRECTORY = Path("/etc/systemd/system")
+DEFAULT_SYSTEMCTL_TIMEOUT = 30.0
+
+class SystemdCommandError(RuntimeError):
+    """Erreur pendant l'exécution d'une commande systemctl."""
+
+class SystemdInstallationError(RuntimeError):
+    """Erreur pendant l'installation d'une unité systemd."""
+
+
+@dataclass(frozen=True)
+class InstalledSystemdService:
+    """Unité systemd installée sur le système."""
+
+    component: ComponentManifest
+    source_path: Path
+    destination_path: Path
+    created: bool
+
+
+class SystemdGenerationError(RuntimeError):
+    """Erreur pendant la génération d'une unité systemd."""
+
+
+@dataclass(frozen=True)
+class GeneratedSystemdService:
+    """Unité systemd générée pour un composant."""
+
+    component: ComponentManifest
+    path: Path
+    content: str
+
+def reload_systemd_daemon(
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Recharger la configuration systemd."""
+
+    command = [
+        str(systemctl_executable),
+        "daemon-reload",
+    ]
+
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            "La commande systemctl daemon-reload "
+            "a dépassé le délai autorisé."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        details = error.stderr.strip() or error.stdout.strip()
+
+        if details:
+            raise SystemdCommandError(
+                "La commande systemctl daemon-reload a échoué : "
+                f"{details}"
+            ) from error
+
+        raise SystemdCommandError(
+            "La commande systemctl daemon-reload a échoué."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            "Impossible d'exécuter systemctl daemon-reload : "
+            f"{error}"
+        ) from error
+
+def render_systemd_service(
+    service: ComponentService,
+) -> str:
+    """Générer le contenu d'une unité systemd."""
+
+    executable = service.executable.as_posix()
+    working_directory = service.working_directory.as_posix()
+
+    command = shlex.join(
+        [
+            executable,
+            *service.arguments,
+        ]
+    )
+
+    return "\n".join(
+        [
+            "[Unit]",
+            f"Description={service.description}",
+            "Wants=network-online.target",
+            "After=network-online.target",
+            "",
+            "[Service]",
+            "Type=simple",
+            f"User={service.user}",
+            f"Group={service.group}",
+            f"WorkingDirectory={working_directory}",
+            f"ExecStart={command}",
+            "Restart=on-failure",
+            "RestartSec=5",
+            "NoNewPrivileges=true",
+            "",
+            "[Install]",
+            "WantedBy=multi-user.target",
+            "",
+        ]
+    )
+
+
+def generate_component_service(
+    component: ComponentManifest,
+    destination_directory: Path | str,
+) -> GeneratedSystemdService:
+    """Générer l'unité systemd déclarée par un composant."""
+
+    if component.service is None:
+        raise SystemdGenerationError(
+            f"{component.name} ne déclare aucun service systemd."
+        )
+
+    destination = (
+        Path(destination_directory)
+        / component.service.filename
+    )
+    content = render_systemd_service(component.service)
+
+    try:
+        destination.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        destination.write_text(
+            content,
+            encoding="utf-8",
+            newline="\n",
+        )
+    except OSError as error:
+        raise SystemdGenerationError(
+            f"Impossible de générer {destination} : {error}"
+        ) from error
+
+    return GeneratedSystemdService(
+        component=component,
+        path=destination,
+        content=content,
+    )
+
+
+def generate_systemd_services(
+    components: tuple[ComponentManifest, ...],
+    destination_directory: Path | str,
+) -> tuple[GeneratedSystemdService, ...]:
+    """Générer les unités systemd déclarées dans le manifeste."""
+
+    return tuple(
+        generate_component_service(
+            component,
+            destination_directory,
+        )
+        for component in components
+        if component.service is not None
+    )
+
+def install_generated_service(
+    generated_service: GeneratedSystemdService,
+    *,
+    system_directory: Path | str = SYSTEMD_SYSTEM_DIRECTORY,
+) -> InstalledSystemdService:
+    """Installer une unité systemd générée."""
+
+    source_path = generated_service.path
+    destination_path = (
+        Path(system_directory)
+        / source_path.name
+    )
+
+    if not source_path.is_file():
+        raise SystemdInstallationError(
+            f"L'unité générée est introuvable : {source_path}."
+        )
+
+    if destination_path.exists():
+        try:
+            existing_content = destination_path.read_text(
+                encoding="utf-8",
+            )
+        except OSError as error:
+            raise SystemdInstallationError(
+                f"Impossible de lire {destination_path} : {error}"
+            ) from error
+
+        if existing_content == generated_service.content:
+            return InstalledSystemdService(
+                component=generated_service.component,
+                source_path=source_path,
+                destination_path=destination_path,
+                created=False,
+            )
+
+        raise SystemdInstallationError(
+            f"L'unité {destination_path} existe déjà "
+            "avec un contenu différent."
+        )
+
+    try:
+        destination_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        shutil.copy2(
+            source_path,
+            destination_path,
+        )
+    except OSError as error:
+        raise SystemdInstallationError(
+            f"Impossible d'installer {destination_path} : {error}"
+        ) from error
+
+    return InstalledSystemdService(
+        component=generated_service.component,
+        source_path=source_path,
+        destination_path=destination_path,
+        created=True,
+    )
+
+def install_generated_services(
+    generated_services: tuple[GeneratedSystemdService, ...],
+    *,
+    system_directory: Path | str = SYSTEMD_SYSTEM_DIRECTORY,
+) -> tuple[InstalledSystemdService, ...]:
+    """Installer plusieurs unités systemd générées."""
+
+    return tuple(
+        install_generated_service(
+            generated_service,
+            system_directory=system_directory,
+        )
+        for generated_service in generated_services
+    )
+
+def enable_systemd_service(
+    service_name: str,
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Activer un service systemd au démarrage."""
+
+    if not service_name or Path(service_name).name != service_name:
+        raise SystemdCommandError(
+            f"Nom de service systemd invalide : {service_name!r}."
+        )
+
+    if not service_name.endswith(".service"):
+        raise SystemdCommandError(
+            f"Le nom {service_name!r} doit se terminer par '.service'."
+        )
+
+    command = [
+        str(systemctl_executable),
+        "enable",
+        service_name,
+    ]
+
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemdCommandError(
+            f"La commande systemctl enable {service_name} "
+            "a dépassé le délai autorisé."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        details = error.stderr.strip() or error.stdout.strip()
+
+        if details:
+            raise SystemdCommandError(
+                f"La commande systemctl enable {service_name} "
+                f"a échoué : {details}"
+            ) from error
+
+        raise SystemdCommandError(
+            f"La commande systemctl enable {service_name} a échoué."
+        ) from error
+    except OSError as error:
+        raise SystemdCommandError(
+            f"Impossible d'exécuter systemctl enable "
+            f"{service_name} : {error}"
+        ) from error
+
+def enable_systemd_services(
+    installed_services: tuple[InstalledSystemdService, ...],
+    *,
+    systemctl_executable: Path | str = "systemctl",
+    timeout: float = DEFAULT_SYSTEMCTL_TIMEOUT,
+) -> None:
+    """Activer plusieurs services systemd."""
+
+    for installed_service in installed_services:
+        enable_systemd_service(
+            installed_service.destination_path.name,
+            systemctl_executable=systemctl_executable,
+            timeout=timeout,
+        )
