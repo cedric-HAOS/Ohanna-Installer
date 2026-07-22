@@ -1,0 +1,46 @@
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Tests et couverture
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Ruff et outils
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.log
+*.bak
+*~
