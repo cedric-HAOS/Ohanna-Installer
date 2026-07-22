@@ -1,2 +1,0 @@
-[console_scripts]
-ohanna = ohanna_installer.cli:main
