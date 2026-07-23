@@ -17,6 +17,7 @@ from ohanna_installer.manifest import (
     RuntimeManifest,
 )
 from ohanna_installer.python_package import InstalledPythonComponent
+from ohanna_installer.system_account import SystemAccount
 from ohanna_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
@@ -159,8 +160,34 @@ def test_update_updates_and_restarts_official_components(
         _build_downloaded_components,
     )
     monkeypatch.setattr(
+        "ohanna_installer.commands.update._download_configurations",
+        lambda manifest, directory: (
+            operations.append("download-config") or ()
+        ),
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.update._ensure_service_accounts",
+        lambda manifest: (
+            operations.append("account")
+            or (
+                SystemAccount(
+                    username="ohanna",
+                    group_name="ohanna",
+                    user_created=False,
+                    group_created=False,
+                ),
+            )
+        ),
+    )
+    monkeypatch.setattr(
         "ohanna_installer.commands.update._generate_services",
         lambda manifest, directory: generated_services,
+    )
+    monkeypatch.setattr(
+        "ohanna_installer.commands.update._install_configurations",
+        lambda downloaded_files: (
+            operations.append("config") or ()
+        ),
     )
     monkeypatch.setattr(
         "ohanna_installer.commands.update._stop_services",
@@ -227,6 +254,9 @@ def test_update_updates_and_restarts_official_components(
     assert main(["update"]) == 0
 
     assert operations == [
+        "download-config",
+        "account",
+        "config",
         "stop",
         "agent",
         "vision",
@@ -239,6 +269,10 @@ def test_update_updates_and_restarts_official_components(
 
     output = capsys.readouterr().out
 
+    assert "Téléchargement des configurations" in output
+    assert "Vérification des comptes système" in output
+    assert "Compte système ohanna prêt" in output
+    assert "Vérification des fichiers de configuration" in output
     assert "Arrêt des services systemd" in output
     assert "Ohanna-Agent 1.1.0 mis à jour" in output
     assert "Ohanna-Vision 1.1.0 mis à jour" in output

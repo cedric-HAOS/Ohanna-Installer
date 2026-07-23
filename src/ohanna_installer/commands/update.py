@@ -7,13 +7,17 @@ import tempfile
 from pathlib import Path
 
 from ohanna_installer.commands.install import (
+    ConfigurationInstallationError,
     _check_services,
     _display_check,
     _display_manifest,
     _download_components,
+    _download_configurations,
     _enable_services,
+    _ensure_service_accounts,
     _generate_services,
     _install_agent,
+    _install_configurations,
     _install_vision,
     _load_official_manifest,
     _reload_systemd,
@@ -25,6 +29,7 @@ from ohanna_installer.manifest import ManifestError
 from ohanna_installer.python_package import (
     PackageInstallationError,
 )
+from ohanna_installer.system_account import SystemAccountError
 from ohanna_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
@@ -126,6 +131,35 @@ def run(args: argparse.Namespace) -> int:
                 )
 
             print()
+            print("Téléchargement des configurations...")
+
+            downloaded_configurations = _download_configurations(
+                manifest,
+                temporary_path,
+            )
+
+            for downloaded_configuration in downloaded_configurations:
+                print(
+                    "✓ "
+                    f"{downloaded_configuration.configuration_file.source} "
+                    "téléchargé pour "
+                    f"{downloaded_configuration.component.name}."
+                )
+
+            print()
+            print("Vérification des comptes système...")
+
+            system_accounts = _ensure_service_accounts(manifest)
+
+            for system_account in system_accounts:
+                print(
+                    f"✓ Groupe système {system_account.group_name} prêt."
+                )
+                print(
+                    f"✓ Compte système {system_account.username} prêt."
+                )
+
+            print()
             print("Génération des services systemd...")
 
             generated_services = _generate_services(
@@ -138,6 +172,24 @@ def run(args: argparse.Namespace) -> int:
                     f"✓ {generated_service.path.name} généré "
                     f"pour {generated_service.component.name}."
                 )
+
+            print()
+            print("Vérification des fichiers de configuration...")
+
+            installed_configurations = _install_configurations(
+                downloaded_configurations,
+            )
+
+            for installed_configuration in installed_configurations:
+                destination = installed_configuration.destination_path
+
+                if installed_configuration.created:
+                    print(f"✓ {destination} installé.")
+                else:
+                    print(
+                        f"✓ {destination} conservé "
+                        "(configuration locale existante)."
+                    )
 
             print()
             print("Arrêt des services systemd...")
@@ -252,6 +304,12 @@ def run(args: argparse.Namespace) -> int:
         return UPDATE_ERROR
     except PackageInstallationError as error:
         print(f"✗ Mise à jour impossible : {error}")
+        return UPDATE_ERROR
+    except ConfigurationInstallationError as error:
+        print(f"✗ Mise à jour des configurations impossible : {error}")
+        return UPDATE_ERROR
+    except SystemAccountError as error:
+        print(f"✗ Vérification des comptes système impossible : {error}")
         return UPDATE_ERROR
 
     print()

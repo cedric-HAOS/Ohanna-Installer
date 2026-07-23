@@ -285,10 +285,50 @@ def test_repository_manifest_is_valid() -> None:
     manifest = load_manifest(manifest_path)
 
     assert manifest.platform_name == "Ohanna"
+    assert manifest.platform_version == "1.0.0"
     assert {component.identifier for component in manifest.components} == {
         "agent",
         "vision",
     }
+
+    agent = next(
+        component
+        for component in manifest.components
+        if component.identifier == "agent"
+    )
+    vision = next(
+        component
+        for component in manifest.components
+        if component.identifier == "vision"
+    )
+
+    assert agent.version == "1.1.0"
+    assert agent.release_tag == "v1.1.0"
+    assert agent.package.filename == (
+        "ohanna_agent-1.1.0-py3-none-any.whl"
+    )
+    assert agent.configuration is not None
+    assert agent.service is not None
+    assert tuple(
+        configuration_file.source
+        for configuration_file in agent.configuration.files
+    ) == (
+        "shikamaru.example.yaml",
+        "infrastructure.example.yaml",
+        "dns.example.yaml",
+    )
+
+    assert vision.version == "1.1.0"
+    assert vision.release_tag == "v1.1.0"
+    assert vision.package.filename == (
+        "ohanna_vision-1.1.0-py3-none-any.whl"
+    )
+    assert vision.configuration is not None
+    assert vision.service is not None
+    assert tuple(
+        configuration_file.source
+        for configuration_file in vision.configuration.files
+    ) == ("vision.example.yaml",)
 
 def test_parse_manifest_reads_agent_configuration() -> None:
     manifest = parse_manifest(VALID_MANIFEST)

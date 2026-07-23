@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from ohanna_installer.environment import EnvironmentCheck, run_environment_checks
 from ohanna_installer.github import (
     DownloadedComponent,
+    DownloadedConfigurationFile,
     DownloadError,
     download_component_packages,
+    download_configuration_files,
     download_platform_manifest,
 )
 from ohanna_installer.manifest import ManifestError, PlatformManifest
@@ -20,6 +24,11 @@ from ohanna_installer.python_package import (
     create_virtual_environment,
     install_wheel,
     verify_component_command,
+)
+from ohanna_installer.system_account import (
+    SystemAccount,
+    SystemAccountError,
+    ensure_system_account,
 )
 from ohanna_installer.systemd import (
     GeneratedSystemdService,
@@ -48,6 +57,21 @@ VISION_IDENTIFIER = "vision"
 VISION_INSTALLATION_PATH = Path("/opt/ohanna-vision")
 VISION_ENVIRONMENT_PATH = VISION_INSTALLATION_PATH / "venv"
 VISION_COMMAND_NAME = "ohanna-vision"
+
+
+class ConfigurationInstallationError(RuntimeError):
+    """Erreur rencontrée pendant l'installation d'une configuration."""
+
+
+@dataclass(frozen=True)
+class InstalledConfigurationFile:
+    """Fichier de configuration installé ou conservé."""
+
+    component_name: str
+    source_path: Path
+    destination_path: Path
+    created: bool
+
 
 def _reload_systemd() -> None:
     """Recharger la configuration systemd."""
@@ -103,6 +127,106 @@ def _download_components(
     return download_component_packages(
         manifest.components,
         directory,
+    )
+
+
+def _download_configurations(
+    manifest: PlatformManifest,
+    directory: Path,
+) -> tuple[DownloadedConfigurationFile, ...]:
+    """Télécharger les modèles de configuration déclarés."""
+
+    return download_configuration_files(
+        manifest.components,
+        directory,
+    )
+
+
+def _install_configuration_file(
+    downloaded_file: DownloadedConfigurationFile,
+) -> InstalledConfigurationFile:
+    """Installer un modèle sans écraser une configuration existante."""
+
+    configuration = downloaded_file.component.configuration
+
+    if configuration is None:
+        raise ConfigurationInstallationError(
+            f"{downloaded_file.component.name} ne déclare "
+            "aucun répertoire de configuration."
+        )
+
+    source_path = downloaded_file.path
+    destination_path = (
+        configuration.directory
+        / downloaded_file.configuration_file.destination
+    )
+
+    if not source_path.is_file():
+        raise ConfigurationInstallationError(
+            f"Le modèle de configuration {source_path} est introuvable."
+        )
+
+    if destination_path.exists():
+        if not destination_path.is_file():
+            raise ConfigurationInstallationError(
+                f"La destination {destination_path} existe "
+                "mais n'est pas un fichier."
+            )
+
+        return InstalledConfigurationFile(
+            component_name=downloaded_file.component.name,
+            source_path=source_path,
+            destination_path=destination_path,
+            created=False,
+        )
+
+    try:
+        destination_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        shutil.copy2(
+            source_path,
+            destination_path,
+        )
+    except OSError as error:
+        raise ConfigurationInstallationError(
+            f"Impossible d'installer {destination_path} : {error}"
+        ) from error
+
+    return InstalledConfigurationFile(
+        component_name=downloaded_file.component.name,
+        source_path=source_path,
+        destination_path=destination_path,
+        created=True,
+    )
+
+
+def _install_configurations(
+    downloaded_files: tuple[DownloadedConfigurationFile, ...],
+) -> tuple[InstalledConfigurationFile, ...]:
+    """Installer tous les modèles de configuration téléchargés."""
+
+    return tuple(
+        _install_configuration_file(downloaded_file)
+        for downloaded_file in downloaded_files
+    )
+
+
+def _ensure_service_accounts(
+    manifest: PlatformManifest,
+) -> tuple[SystemAccount, ...]:
+    """Créer ou valider les comptes déclarés par les services."""
+
+    account_names = {
+        (component.service.user, component.service.group)
+        for component in manifest.components
+        if component.service is not None
+    }
+
+    return tuple(
+        ensure_system_account(username, group_name)
+        for username, group_name in sorted(account_names)
     )
 
 
@@ -225,6 +349,48 @@ def run(args: argparse.Namespace) -> int:
                 )
 
             print()
+            print("Téléchargement des configurations...")
+
+            downloaded_configurations = _download_configurations(
+                manifest,
+                temporary_path,
+            )
+
+            for downloaded_configuration in downloaded_configurations:
+                print(
+                    "✓ "
+                    f"{downloaded_configuration.configuration_file.source} "
+                    "téléchargé pour "
+                    f"{downloaded_configuration.component.name}."
+                )
+
+            print()
+            print("Préparation des comptes système...")
+
+            system_accounts = _ensure_service_accounts(manifest)
+
+            for system_account in system_accounts:
+                group_status = (
+                    "créé"
+                    if system_account.group_created
+                    else "déjà présent"
+                )
+                user_status = (
+                    "créé"
+                    if system_account.user_created
+                    else "déjà présent"
+                )
+
+                print(
+                    f"✓ Groupe système {system_account.group_name} "
+                    f"{group_status}."
+                )
+                print(
+                    f"✓ Compte système {system_account.username} "
+                    f"{user_status}."
+                )
+
+            print()
             print("Installation d'Ohanna-Agent...")
 
             installed_agent = _install_agent(downloaded_components)
@@ -244,6 +410,24 @@ def run(args: argparse.Namespace) -> int:
                 f"✓ {installed_vision.name} "
                 f"{installed_vision.version} installé."
             )
+            print()
+            print("Installation des fichiers de configuration...")
+
+            installed_configurations = _install_configurations(
+                downloaded_configurations,
+            )
+
+            for installed_configuration in installed_configurations:
+                destination = installed_configuration.destination_path
+
+                if installed_configuration.created:
+                    print(f"✓ {destination} installé.")
+                else:
+                    print(
+                        f"✓ {destination} conservé "
+                        "(configuration locale existante)."
+                    )
+
             print()
             print("Génération des services systemd...")
 
@@ -330,6 +514,12 @@ def run(args: argparse.Namespace) -> int:
         return INSTALLATION_ERROR
     except PackageInstallationError as error:
         print(f"✗ Installation impossible : {error}")
+        return INSTALLATION_ERROR
+    except ConfigurationInstallationError as error:
+        print(f"✗ Installation des configurations impossible : {error}")
+        return INSTALLATION_ERROR
+    except SystemAccountError as error:
+        print(f"✗ Préparation des comptes système impossible : {error}")
         return INSTALLATION_ERROR
 
     print()

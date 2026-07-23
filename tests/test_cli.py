@@ -21,6 +21,7 @@ from ohanna_installer.python_package import (
     InstalledPythonComponent,
     PackageInstallationError,
 )
+from ohanna_installer.system_account import SystemAccount
 from ohanna_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
@@ -357,6 +358,17 @@ def test_install_downloads_and_installs_official_components(
         _build_downloaded_components,
     )
     monkeypatch.setattr(
+        "ohanna_installer.commands.install._ensure_service_accounts",
+        lambda manifest: (
+            SystemAccount(
+                username="ohanna",
+                group_name="ohanna",
+                user_created=True,
+                group_created=True,
+            ),
+        ),
+    )
+    monkeypatch.setattr(
         "ohanna_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
@@ -406,10 +418,15 @@ def test_install_downloads_and_installs_official_components(
     assert "Téléchargement des composants" in output
     assert "✓ Ohanna-Agent 1.0.0 téléchargé." in output
     assert "✓ Ohanna-Vision 1.0.0 téléchargé." in output
+    assert "Téléchargement des configurations" in output
+    assert "Préparation des comptes système" in output
+    assert "Groupe système ohanna créé" in output
+    assert "Compte système ohanna créé" in output
     assert "Installation d'Ohanna-Agent" in output
     assert "✓ Ohanna-Agent 1.0.0 installé." in output
     assert "Installation d'Ohanna-Vision" in output
     assert "✓ Ohanna-Vision 1.0.0 installé." in output
+    assert "Installation des fichiers de configuration" in output
     assert "Rechargement de systemd" in output
     assert "✓ Configuration systemd rechargée." in output
     assert "Activation des services systemd" in output

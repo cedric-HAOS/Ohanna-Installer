@@ -44,3 +44,7 @@ desktop.ini
 *.log
 *.bak
 *~
+
+# Artefacts de validation locaux
+/release-check/
+*.patch
