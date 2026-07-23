@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import tempfile
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,12 +18,17 @@ from ohanna_installer.github import (
     download_configuration_files,
     download_platform_manifest,
 )
-from ohanna_installer.manifest import ManifestError, PlatformManifest
+from ohanna_installer.manifest import (
+    ComponentManifest,
+    ManifestError,
+    PlatformManifest,
+)
 from ohanna_installer.python_package import (
     InstalledPythonComponent,
     PackageInstallationError,
     create_virtual_environment,
     install_wheel,
+    secure_installation_tree,
     verify_component_command,
 )
 from ohanna_installer.system_account import (
@@ -58,6 +64,11 @@ VISION_INSTALLATION_PATH = Path("/opt/ohanna-vision")
 VISION_ENVIRONMENT_PATH = VISION_INSTALLATION_PATH / "venv"
 VISION_COMMAND_NAME = "ohanna-vision"
 
+INSTALLATION_OWNER = "root"
+CONFIGURATION_OWNER = "root"
+CONFIGURATION_DIRECTORY_MODE = 0o750
+CONFIGURATION_FILE_MODE = 0o640
+
 
 class ConfigurationInstallationError(RuntimeError):
     """Erreur rencontrée pendant l'installation d'une configuration."""
@@ -70,6 +81,7 @@ class InstalledConfigurationFile:
     component_name: str
     source_path: Path
     destination_path: Path
+    group_name: str
     created: bool
 
 
@@ -77,6 +89,7 @@ def _reload_systemd() -> None:
     """Recharger la configuration systemd."""
 
     reload_systemd_daemon()
+
 
 def configure_parser(subparsers: argparse._SubParsersAction) -> None:
     """Configurer la sous-commande install."""
@@ -142,16 +155,116 @@ def _download_configurations(
     )
 
 
+def _configuration_group_name(component: ComponentManifest) -> str:
+    """Retourner le groupe autorisé à lire la configuration."""
+
+    if component.service is None:
+        return CONFIGURATION_OWNER
+
+    return component.service.group
+
+
+def _configuration_directories(
+    configuration_directory: Path,
+    destination_path: Path,
+) -> tuple[Path, ...]:
+    """Lister les répertoires déclarés jusqu'au fichier final."""
+
+    try:
+        relative_parent = destination_path.parent.relative_to(
+            configuration_directory
+        )
+    except ValueError as error:
+        raise ConfigurationInstallationError(
+            f"La destination {destination_path} sort du répertoire "
+            f"de configuration {configuration_directory}."
+        ) from error
+
+    directories = [configuration_directory]
+    current_directory = configuration_directory
+
+    for part in relative_parent.parts:
+        current_directory /= part
+        directories.append(current_directory)
+
+    return tuple(directories)
+
+
+def _secure_configuration_path(
+    path: Path,
+    *,
+    group_name: str,
+    mode: int,
+) -> None:
+    """Appliquer un propriétaire, un groupe et un mode explicites."""
+
+    try:
+        shutil.chown(
+            path,
+            user=CONFIGURATION_OWNER,
+            group=group_name,
+        )
+        path.chmod(mode)
+    except (LookupError, OSError) as error:
+        raise ConfigurationInstallationError(
+            f"Impossible de sécuriser {path} "
+            f"({CONFIGURATION_OWNER}:{group_name}, {mode:04o}) : "
+            f"{error}"
+        ) from error
+
+
+def _prepare_configuration_directories(
+    configuration_directory: Path,
+    destination_path: Path,
+    *,
+    group_name: str,
+) -> None:
+    """Créer et sécuriser l'arborescence d'une configuration."""
+
+    for directory in _configuration_directories(
+        configuration_directory,
+        destination_path,
+    ):
+        try:
+            directory.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+        except OSError as error:
+            raise ConfigurationInstallationError(
+                f"Impossible de préparer {directory} : {error}"
+            ) from error
+
+        if directory.is_symlink():
+            raise ConfigurationInstallationError(
+                f"Le répertoire de configuration {directory} "
+                "ne peut pas être un lien symbolique."
+            )
+
+        if not directory.is_dir():
+            raise ConfigurationInstallationError(
+                f"Le chemin de configuration {directory} "
+                "n'est pas un répertoire."
+            )
+
+        _secure_configuration_path(
+            directory,
+            group_name=group_name,
+            mode=CONFIGURATION_DIRECTORY_MODE,
+        )
+
+
 def _install_configuration_file(
     downloaded_file: DownloadedConfigurationFile,
 ) -> InstalledConfigurationFile:
-    """Installer un modèle sans écraser une configuration existante."""
+    """Installer un modèle et imposer des permissions sécurisées."""
 
-    configuration = downloaded_file.component.configuration
+    component = downloaded_file.component
+    configuration = component.configuration
 
     if configuration is None:
         raise ConfigurationInstallationError(
-            f"{downloaded_file.component.name} ne déclare "
+            f"{component.name} ne déclare "
             "aucun répertoire de configuration."
         )
 
@@ -160,45 +273,63 @@ def _install_configuration_file(
         configuration.directory
         / downloaded_file.configuration_file.destination
     )
+    group_name = _configuration_group_name(component)
 
     if not source_path.is_file():
         raise ConfigurationInstallationError(
             f"Le modèle de configuration {source_path} est introuvable."
         )
 
-    if destination_path.exists():
-        if not destination_path.is_file():
-            raise ConfigurationInstallationError(
-                f"La destination {destination_path} existe "
-                "mais n'est pas un fichier."
-            )
-
-        return InstalledConfigurationFile(
-            component_name=downloaded_file.component.name,
-            source_path=source_path,
-            destination_path=destination_path,
-            created=False,
+    if destination_path.is_symlink():
+        raise ConfigurationInstallationError(
+            f"La destination {destination_path} "
+            "ne peut pas être un lien symbolique."
         )
+
+    if destination_path.exists() and not destination_path.is_file():
+        raise ConfigurationInstallationError(
+            f"La destination {destination_path} existe "
+            "mais n'est pas un fichier."
+        )
+
+    _prepare_configuration_directories(
+        configuration.directory,
+        destination_path,
+        group_name=group_name,
+    )
+
+    created = not destination_path.exists()
+
+    if created:
+        try:
+            shutil.copy2(
+                source_path,
+                destination_path,
+            )
+        except OSError as error:
+            raise ConfigurationInstallationError(
+                f"Impossible d'installer {destination_path} : {error}"
+            ) from error
 
     try:
-        destination_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-        shutil.copy2(
-            source_path,
+        _secure_configuration_path(
             destination_path,
+            group_name=group_name,
+            mode=CONFIGURATION_FILE_MODE,
         )
-    except OSError as error:
-        raise ConfigurationInstallationError(
-            f"Impossible d'installer {destination_path} : {error}"
-        ) from error
+    except ConfigurationInstallationError:
+        if created:
+            with suppress(OSError):
+                destination_path.unlink(missing_ok=True)
+
+        raise
 
     return InstalledConfigurationFile(
-        component_name=downloaded_file.component.name,
+        component_name=component.name,
         source_path=source_path,
         destination_path=destination_path,
-        created=True,
+        group_name=group_name,
+        created=created,
     )
 
 
@@ -245,57 +376,133 @@ def _find_downloaded_component(
     )
 
 
+def _prepare_installation_path(
+    installation_path: Path,
+    *,
+    replace: bool,
+) -> bool:
+    """Validate an installation path and optionally remove it."""
+
+    if installation_path.is_symlink():
+        raise PackageInstallationError(
+            f"Le répertoire d'installation {installation_path} "
+            "ne peut pas être un lien symbolique."
+        )
+
+    if installation_path.exists() and not installation_path.is_dir():
+        raise PackageInstallationError(
+            f"Le chemin d'installation {installation_path} "
+            "n'est pas un répertoire."
+        )
+
+    if not replace or not installation_path.exists():
+        return False
+
+    try:
+        shutil.rmtree(installation_path)
+    except OSError as error:
+        raise PackageInstallationError(
+            f"Impossible de remplacer l'installation "
+            f"{installation_path} : {error}"
+        ) from error
+
+    return True
+
+
+def _installation_group_name(component: ComponentManifest) -> str:
+    """Return the group allowed to execute one component."""
+
+    if component.service is None:
+        return INSTALLATION_OWNER
+
+    return component.service.group
+
+
+def _install_component(
+    downloaded_components: tuple[DownloadedComponent, ...],
+    *,
+    identifier: str,
+    installation_path: Path,
+    environment_path: Path,
+    command_name: str,
+    replace: bool,
+) -> InstalledPythonComponent:
+    """Install and secure one Python component."""
+
+    downloaded_component = _find_downloaded_component(
+        downloaded_components,
+        identifier,
+    )
+    component = downloaded_component.component
+    installation_existed = installation_path.exists()
+
+    _prepare_installation_path(
+        installation_path,
+        replace=replace,
+    )
+
+    cleanup_on_failure = replace or not installation_existed
+
+    try:
+        create_virtual_environment(environment_path)
+        install_wheel(
+            downloaded_component.path,
+            environment_path,
+        )
+        installed_component = verify_component_command(
+            environment_path=environment_path,
+            command_name=command_name,
+            expected_version=component.version,
+            component_name=component.name,
+        )
+        secure_installation_tree(
+            installation_path,
+            owner=INSTALLATION_OWNER,
+            group=_installation_group_name(component),
+        )
+    except PackageInstallationError:
+        if cleanup_on_failure:
+            with suppress(OSError):
+                shutil.rmtree(installation_path)
+
+        raise
+
+    return installed_component
+
+
 def _install_agent(
     downloaded_components: tuple[DownloadedComponent, ...],
+    *,
+    replace: bool = False,
 ) -> InstalledPythonComponent:
-    """Installer Ohanna-Agent dans son environnement virtuel."""
+    """Install Ohanna-Agent in its virtual environment."""
 
-    downloaded_agent = _find_downloaded_component(
+    return _install_component(
         downloaded_components,
-        AGENT_IDENTIFIER,
-    )
-
-    component = downloaded_agent.component
-
-    create_virtual_environment(AGENT_ENVIRONMENT_PATH)
-
-    install_wheel(
-        downloaded_agent.path,
-        AGENT_ENVIRONMENT_PATH,
-    )
-
-    return verify_component_command(
+        identifier=AGENT_IDENTIFIER,
+        installation_path=AGENT_INSTALLATION_PATH,
         environment_path=AGENT_ENVIRONMENT_PATH,
         command_name=AGENT_COMMAND_NAME,
-        expected_version=component.version,
-        component_name=component.name,
+        replace=replace,
     )
+
 
 def _install_vision(
     downloaded_components: tuple[DownloadedComponent, ...],
+    *,
+    replace: bool = False,
 ) -> InstalledPythonComponent:
-    """Installer Ohanna-Vision dans son environnement virtuel."""
+    """Install Ohanna-Vision in its virtual environment."""
 
-    downloaded_vision = _find_downloaded_component(
+    return _install_component(
         downloaded_components,
-        VISION_IDENTIFIER,
-    )
-
-    component = downloaded_vision.component
-
-    create_virtual_environment(VISION_ENVIRONMENT_PATH)
-
-    install_wheel(
-        downloaded_vision.path,
-        VISION_ENVIRONMENT_PATH,
-    )
-
-    return verify_component_command(
+        identifier=VISION_IDENTIFIER,
+        installation_path=VISION_INSTALLATION_PATH,
         environment_path=VISION_ENVIRONMENT_PATH,
         command_name=VISION_COMMAND_NAME,
-        expected_version=component.version,
-        component_name=component.name,
+        replace=replace,
     )
+
 
 def run(args: argparse.Namespace) -> int:
     """Exécuter la commande install."""
@@ -421,11 +628,19 @@ def run(args: argparse.Namespace) -> int:
                 destination = installed_configuration.destination_path
 
                 if installed_configuration.created:
-                    print(f"✓ {destination} installé.")
+                    print(
+                        f"✓ {destination} installé "
+                        f"({CONFIGURATION_OWNER}:"
+                        f"{installed_configuration.group_name}, "
+                        f"{CONFIGURATION_FILE_MODE:04o})."
+                    )
                 else:
                     print(
                         f"✓ {destination} conservé "
-                        "(configuration locale existante)."
+                        "(configuration locale existante, "
+                        f"{CONFIGURATION_OWNER}:"
+                        f"{installed_configuration.group_name}, "
+                        f"{CONFIGURATION_FILE_MODE:04o})."
                     )
 
             print()

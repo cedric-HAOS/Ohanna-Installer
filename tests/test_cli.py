@@ -615,6 +615,13 @@ def test_install_agent_creates_environment_and_installs_wheel(
         "ohanna_installer.commands.install.verify_component_command",
         lambda **kwargs: expected_component,
     )
+    secured_installations: list[tuple[Path, str, str]] = []
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.secure_installation_tree",
+        lambda path, *, owner, group: secured_installations.append(
+            (Path(path), owner, group)
+        ),
+    )
     monkeypatch.setattr(
         "ohanna_installer.commands.install._reload_systemd",
         lambda: None,
@@ -632,6 +639,9 @@ def test_install_agent_creates_environment_and_installs_wheel(
         "/opt/ohanna-agent/venv"
     )
     assert installed_wheel == wheel_path
+    assert secured_installations == [
+        (Path("/opt/ohanna-agent"), "root", "root"),
+    ]
     assert result == expected_component
 
 def test_install_fails_when_systemd_reload_fails(
@@ -846,6 +856,13 @@ def test_install_vision_creates_environment_and_installs_wheel(
         "ohanna_installer.commands.install.verify_component_command",
         fake_verify_component_command,
     )
+    secured_installations: list[tuple[Path, str, str]] = []
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.secure_installation_tree",
+        lambda path, *, owner, group: secured_installations.append(
+            (Path(path), owner, group)
+        ),
+    )
     monkeypatch.setattr(
         "ohanna_installer.commands.install._generate_services",
         lambda manifest, directory: (),
@@ -873,6 +890,9 @@ def test_install_vision_creates_environment_and_installs_wheel(
         "expected_version": "1.0.0",
         "component_name": "Ohanna-Vision",
     }
+    assert secured_installations == [
+        (Path("/opt/ohanna-vision"), "root", "root"),
+    ]
     assert result == _build_installed_vision()
 
 def test_install_vision_fails_when_vision_was_not_downloaded() -> None:
@@ -1175,3 +1195,65 @@ def test_install_fails_when_service_is_not_active(
     assert "Vérification des services systemd" in output
     assert "ohanna-agent.service est failed" in output
     assert "ohanna-vision.service est actif" not in output
+
+
+def test_prepare_installation_path_removes_existing_tree(
+    tmp_path: Path,
+) -> None:
+    from ohanna_installer.commands.install import _prepare_installation_path
+
+    installation_path = tmp_path / "ohanna-agent"
+    (installation_path / "venv").mkdir(parents=True)
+
+    removed = _prepare_installation_path(
+        installation_path,
+        replace=True,
+    )
+
+    assert removed is True
+    assert not installation_path.exists()
+
+
+def test_prepare_installation_path_preserves_tree_without_replace(
+    tmp_path: Path,
+) -> None:
+    from ohanna_installer.commands.install import _prepare_installation_path
+
+    installation_path = tmp_path / "ohanna-agent"
+    installation_path.mkdir()
+
+    removed = _prepare_installation_path(
+        installation_path,
+        replace=False,
+    )
+
+    assert removed is False
+    assert installation_path.is_dir()
+
+
+def test_installation_group_is_derived_from_service() -> None:
+    from ohanna_installer.commands.install import _installation_group_name
+    from ohanna_installer.manifest import ComponentService
+
+    component = ComponentManifest(
+        identifier="agent",
+        name="Ohanna-Agent",
+        repository="cedric-HAOS/Ohanna-Agent",
+        version="1.1.0",
+        release_tag="v1.1.0",
+        package=ComponentPackage(
+            type="wheel",
+            filename="ohanna_agent-1.1.0-py3-none-any.whl",
+        ),
+        service=ComponentService(
+            filename="ohanna-agent.service",
+            description="Ohanna Agent",
+            user="ohanna",
+            group="ohanna",
+            working_directory=Path("/opt/ohanna-agent"),
+            executable=Path("/opt/ohanna-agent/venv/bin/ohanna-agent"),
+            arguments=(),
+        ),
+    )
+
+    assert _installation_group_name(component) == "ohanna"

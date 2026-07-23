@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import shutil
+import stat
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_COMMAND_TIMEOUT = 120.0
+
+INSTALLATION_DIRECTORY_MODE = 0o750
+INSTALLATION_FILE_MODE = 0o640
+INSTALLATION_EXECUTABLE_MODE = 0o750
 
 
 class PackageInstallationError(RuntimeError):
@@ -141,6 +147,78 @@ def verify_component_command(
         environment_path=target_environment,
         executable_path=executable_path,
     )
+
+
+def _secured_file_mode(source_mode: int) -> int:
+    """Return a secure mode while preserving executability."""
+
+    executable = bool(
+        source_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    )
+
+    return (
+        INSTALLATION_EXECUTABLE_MODE
+        if executable
+        else INSTALLATION_FILE_MODE
+    )
+
+
+def secure_installation_tree(
+    installation_path: Path | str,
+    *,
+    owner: str,
+    group: str,
+) -> None:
+    """Secure a component installation without following symlinks."""
+
+    root_path = Path(installation_path)
+
+    if root_path.is_symlink():
+        raise PackageInstallationError(
+            f"Le répertoire d'installation {root_path} "
+            "ne peut pas être un lien symbolique."
+        )
+
+    if not root_path.is_dir():
+        raise PackageInstallationError(
+            f"Le répertoire d'installation est introuvable : {root_path}."
+        )
+
+    paths = (root_path, *root_path.rglob("*"))
+
+    for path in paths:
+        if path.is_symlink():
+            continue
+
+        if path.is_dir():
+            mode = INSTALLATION_DIRECTORY_MODE
+        elif path.is_file():
+            try:
+                source_mode = path.stat().st_mode
+            except OSError as error:
+                raise PackageInstallationError(
+                    f"Impossible de lire les permissions de {path} : {error}"
+                ) from error
+
+            mode = _secured_file_mode(source_mode)
+        else:
+            raise PackageInstallationError(
+                f"Le chemin d'installation {path} n'est ni un fichier "
+                "ni un répertoire régulier."
+            )
+
+        try:
+            shutil.chown(
+                path,
+                user=owner,
+                group=group,
+            )
+            path.chmod(mode)
+        except (LookupError, OSError) as error:
+            raise PackageInstallationError(
+                f"Impossible de sécuriser {path} "
+                f"({owner}:{group}, {mode:04o}) : {error}"
+            ) from error
 
 
 def get_environment_executable(

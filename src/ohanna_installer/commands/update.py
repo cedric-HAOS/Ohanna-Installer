@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 
 from ohanna_installer.commands.install import (
+    CONFIGURATION_FILE_MODE,
+    CONFIGURATION_OWNER,
     ConfigurationInstallationError,
     _check_services,
     _display_check,
@@ -184,11 +186,19 @@ def run(args: argparse.Namespace) -> int:
                 destination = installed_configuration.destination_path
 
                 if installed_configuration.created:
-                    print(f"✓ {destination} installé.")
+                    print(
+                        f"✓ {destination} installé "
+                        f"({CONFIGURATION_OWNER}:"
+                        f"{installed_configuration.group_name}, "
+                        f"{CONFIGURATION_FILE_MODE:04o})."
+                    )
                 else:
                     print(
                         f"✓ {destination} conservé "
-                        "(configuration locale existante)."
+                        "(configuration locale existante, "
+                        f"{CONFIGURATION_OWNER}:"
+                        f"{installed_configuration.group_name}, "
+                        f"{CONFIGURATION_FILE_MODE:04o})."
                     )
 
             print()
@@ -202,7 +212,7 @@ def run(args: argparse.Namespace) -> int:
             print()
             print("Mise à jour d'Ohanna-Agent...")
 
-            installed_agent = _install_agent(downloaded_components)
+            installed_agent = _install_agent(downloaded_components, replace=True)
 
             print(
                 f"✓ {installed_agent.name} "
@@ -214,6 +224,7 @@ def run(args: argparse.Namespace) -> int:
 
             installed_vision = _install_vision(
                 downloaded_components,
+                replace=True,
             )
 
             print(

@@ -195,8 +195,8 @@ def test_update_updates_and_restarts_official_components(
     )
     monkeypatch.setattr(
         "ohanna_installer.commands.update._install_agent",
-        lambda components: (
-            operations.append("agent")
+        lambda components, *, replace: (
+            operations.append(f"agent:{replace}")
             or _build_installed_component(
                 "Ohanna-Agent",
                 "ohanna-agent",
@@ -205,8 +205,8 @@ def test_update_updates_and_restarts_official_components(
     )
     monkeypatch.setattr(
         "ohanna_installer.commands.update._install_vision",
-        lambda components: (
-            operations.append("vision")
+        lambda components, *, replace: (
+            operations.append(f"vision:{replace}")
             or _build_installed_component(
                 "Ohanna-Vision",
                 "ohanna-vision",
@@ -258,8 +258,8 @@ def test_update_updates_and_restarts_official_components(
         "account",
         "config",
         "stop",
-        "agent",
-        "vision",
+        "agent:True",
+        "vision:True",
         "replace",
         "reload",
         "enable",
@@ -410,14 +410,14 @@ def test_update_fails_when_service_remains_inactive(
     )
     monkeypatch.setattr(
         "ohanna_installer.commands.update._install_agent",
-        lambda components: _build_installed_component(
+        lambda components, *, replace: _build_installed_component(
             "Ohanna-Agent",
             "ohanna-agent",
         ),
     )
     monkeypatch.setattr(
         "ohanna_installer.commands.update._install_vision",
-        lambda components: _build_installed_component(
+        lambda components, *, replace: _build_installed_component(
             "Ohanna-Vision",
             "ohanna-vision",
         ),

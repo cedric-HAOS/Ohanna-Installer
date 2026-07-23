@@ -5,15 +5,19 @@ from pathlib import Path
 import pytest
 
 from ohanna_installer.commands.install import (
+    CONFIGURATION_DIRECTORY_MODE,
+    CONFIGURATION_FILE_MODE,
     ConfigurationInstallationError,
     _install_configuration_file,
     _install_configurations,
+    _secure_configuration_path,
 )
 from ohanna_installer.github import DownloadedConfigurationFile
 from ohanna_installer.manifest import (
     ComponentConfiguration,
     ComponentManifest,
     ComponentPackage,
+    ComponentService,
     ConfigurationFile,
 )
 
@@ -52,12 +56,33 @@ def _build_downloaded_configuration(
             if with_component_configuration
             else None
         ),
+        service=ComponentService(
+            filename="ohanna-agent.service",
+            description="Ohanna Agent",
+            user="ohanna",
+            group="ohanna",
+            working_directory=Path("/opt/ohanna-agent"),
+            executable=Path(
+                "/opt/ohanna-agent/venv/bin/ohanna-agent"
+            ),
+            arguments=(),
+        ),
     )
 
     return DownloadedConfigurationFile(
         component=component,
         configuration_file=configuration.files[0],
         path=source_path,
+    )
+
+
+@pytest.fixture(autouse=True)
+def avoid_real_configuration_ownership(monkeypatch) -> None:
+    """Éviter les changements de propriétaire pendant les tests Windows."""
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._secure_configuration_path",
+        lambda path, *, group_name, mode: None,
     )
 
 
@@ -164,3 +189,185 @@ def test_install_configurations_installs_all_files(
 
     assert len(installed_files) == 2
     assert all(installed_file.created for installed_file in installed_files)
+
+
+def test_install_configuration_file_secures_directories_and_file(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    downloaded_file = _build_downloaded_configuration(tmp_path)
+    secured_paths: list[tuple[Path, str, int]] = []
+
+    def record_permissions(
+        path: Path,
+        *,
+        group_name: str,
+        mode: int,
+    ) -> None:
+        secured_paths.append((path, group_name, mode))
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._secure_configuration_path",
+        record_permissions,
+    )
+
+    installed_file = _install_configuration_file(downloaded_file)
+    configuration = downloaded_file.component.configuration
+    assert configuration is not None
+
+    assert installed_file.group_name == "ohanna"
+    assert secured_paths == [
+        (
+            configuration.directory,
+            "ohanna",
+            CONFIGURATION_DIRECTORY_MODE,
+        ),
+        (
+            configuration.directory / "plugins",
+            "ohanna",
+            CONFIGURATION_DIRECTORY_MODE,
+        ),
+        (
+            installed_file.destination_path,
+            "ohanna",
+            CONFIGURATION_FILE_MODE,
+        ),
+    ]
+
+
+def test_secure_configuration_path_applies_owner_group_and_mode(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    path = tmp_path / "vision.yaml"
+    path.write_text("server: {}\n", encoding="utf-8")
+    chown_calls: list[tuple[Path, str, str]] = []
+    chmod_calls: list[tuple[Path, int]] = []
+
+    def fake_chown(
+        received_path: Path,
+        *,
+        user: str,
+        group: str,
+    ) -> None:
+        chown_calls.append((received_path, user, group))
+
+    def fake_chmod(received_path: Path, mode: int) -> None:
+        chmod_calls.append((received_path, mode))
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.shutil.chown",
+        fake_chown,
+    )
+    monkeypatch.setattr(Path, "chmod", fake_chmod)
+
+    _secure_configuration_path(
+        path,
+        group_name="ohanna",
+        mode=CONFIGURATION_FILE_MODE,
+    )
+
+    assert chown_calls == [(path, "root", "ohanna")]
+    assert chmod_calls == [(path, CONFIGURATION_FILE_MODE)]
+
+
+def test_install_configuration_file_removes_new_file_when_securing_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    downloaded_file = _build_downloaded_configuration(tmp_path)
+    configuration = downloaded_file.component.configuration
+    assert configuration is not None
+    destination = (
+        configuration.directory
+        / downloaded_file.configuration_file.destination
+    )
+
+    def fail_on_file(
+        path: Path,
+        *,
+        group_name: str,
+        mode: int,
+    ) -> None:
+        del group_name
+        del mode
+
+        if path == destination:
+            raise ConfigurationInstallationError(
+                "permissions refusées"
+            )
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install._secure_configuration_path",
+        fail_on_file,
+    )
+
+    with pytest.raises(
+        ConfigurationInstallationError,
+        match="permissions refusées",
+    ):
+        _install_configuration_file(downloaded_file)
+
+    assert not destination.exists()
+
+
+def test_install_configuration_file_rejects_symbolic_link_destination(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    downloaded_file = _build_downloaded_configuration(tmp_path)
+    configuration = downloaded_file.component.configuration
+    assert configuration is not None
+    destination = (
+        configuration.directory
+        / downloaded_file.configuration_file.destination
+    )
+    original_is_symlink = Path.is_symlink
+
+    def fake_is_symlink(path: Path) -> bool:
+        if path == destination:
+            return True
+
+        return original_is_symlink(path)
+
+    monkeypatch.setattr(Path, "is_symlink", fake_is_symlink)
+
+    with pytest.raises(
+        ConfigurationInstallationError,
+        match="ne peut pas être un lien symbolique",
+    ):
+        _install_configuration_file(downloaded_file)
+
+
+def test_secure_configuration_path_reports_permission_failure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    path = tmp_path / "vision.yaml"
+    path.write_text("server: {}\n", encoding="utf-8")
+
+    def raise_lookup_error(
+        received_path: Path,
+        *,
+        user: str,
+        group: str,
+    ) -> None:
+        del received_path
+        del user
+        del group
+        raise LookupError("groupe introuvable")
+
+    monkeypatch.setattr(
+        "ohanna_installer.commands.install.shutil.chown",
+        raise_lookup_error,
+    )
+
+    with pytest.raises(
+        ConfigurationInstallationError,
+        match=r"root:ohanna, 0640.*groupe introuvable",
+    ):
+        _secure_configuration_path(
+            path,
+            group_name="ohanna",
+            mode=CONFIGURATION_FILE_MODE,
+        )

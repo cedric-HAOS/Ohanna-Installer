@@ -224,3 +224,74 @@ def test_verify_component_command_rejects_unexpected_version(
             expected_version="1.0.0",
             component_name="Ohanna-Agent",
         )
+
+def test_secured_file_mode_preserves_executability() -> None:
+    from ohanna_installer.python_package import _secured_file_mode
+
+    assert _secured_file_mode(0o100755) == 0o750
+    assert _secured_file_mode(0o100644) == 0o640
+
+
+def test_secure_installation_tree_applies_owner_group_and_modes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from ohanna_installer.python_package import secure_installation_tree
+
+    installation_path = tmp_path / "ohanna-agent"
+    package_directory = installation_path / "venv" / "lib"
+    package_directory.mkdir(parents=True)
+    module_path = package_directory / "module.py"
+    module_path.write_text("value = 1\n", encoding="utf-8")
+
+    owners: list[tuple[Path, str, str]] = []
+    modes: dict[Path, int] = {}
+
+    monkeypatch.setattr(
+        "ohanna_installer.python_package.shutil.chown",
+        lambda path, *, user, group: owners.append(
+            (Path(path), user, group)
+        ),
+    )
+    monkeypatch.setattr(
+        Path,
+        "chmod",
+        lambda self, mode: modes.__setitem__(self, mode),
+    )
+
+    secure_installation_tree(
+        installation_path,
+        owner="root",
+        group="ohanna",
+    )
+
+    expected_paths = {
+        installation_path,
+        installation_path / "venv",
+        package_directory,
+        module_path,
+    }
+
+    assert {path for path, _, _ in owners} == expected_paths
+    assert all(owner == "root" for _, owner, _ in owners)
+    assert all(group == "ohanna" for _, _, group in owners)
+    assert modes[installation_path] == 0o750
+    assert modes[installation_path / "venv"] == 0o750
+    assert modes[package_directory] == 0o750
+    assert modes[module_path] == 0o640
+
+
+def test_secure_installation_tree_rejects_missing_directory(
+    tmp_path: Path,
+) -> None:
+    from ohanna_installer.python_package import secure_installation_tree
+
+    with pytest.raises(
+        PackageInstallationError,
+        match="répertoire d'installation est introuvable",
+    ):
+        secure_installation_tree(
+            tmp_path / "missing",
+            owner="root",
+            group="ohanna",
+        )
