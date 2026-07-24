@@ -9,6 +9,11 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
+from ohana_installer.administration import (
+    AdministrationPreparationError,
+    activate_administration,
+    prepare_administration,
+)
 from ohana_installer.confirmation import confirm_action
 from ohana_installer.environment import EnvironmentCheck, run_environment_checks
 from ohana_installer.github import (
@@ -615,6 +620,19 @@ def run(args: argparse.Namespace) -> int:
                     )
 
             print()
+            print("Préparation de l'administration graphique...")
+
+            administration = prepare_administration()
+
+            if administration.configured:
+                print("✓ Canal Agent/Vision sécurisé et configuré.")
+
+                if administration.dhcp_enabled:
+                    print("✓ Administration DHCP dnsmasq préparée.")
+                else:
+                    print("✓ DHCP absent : administration DHCP désactivée.")
+
+            print()
             print("Génération des services systemd...")
 
             generated_services = _generate_services(
@@ -646,6 +664,11 @@ def run(args: argparse.Namespace) -> int:
             _reload_systemd()
 
             print("✓ Configuration systemd rechargée.")
+            activate_administration(administration)
+
+            if administration.dhcp_enabled:
+                print("✓ Surveillance du rechargement DHCP activée.")
+
             print()
             print("Activation des services systemd...")
 
@@ -692,6 +715,9 @@ def run(args: argparse.Namespace) -> int:
         return INSTALLATION_ERROR
     except ConfigurationInstallationError as error:
         print(f"✗ Installation des configurations impossible : {error}")
+        return INSTALLATION_ERROR
+    except AdministrationPreparationError as error:
+        print(f"✗ Préparation de l'administration impossible : {error}")
         return INSTALLATION_ERROR
     except SystemAccountError as error:
         print(f"✗ Préparation des comptes système impossible : {error}")

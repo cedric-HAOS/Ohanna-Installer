@@ -1,6 +1,6 @@
 # Installation d'Ohana sur Raspberry Pi
 
-Ce guide installe **Ohana-Installer 1.0.0**, puis Ohana-Agent et Ohana-Vision
+Ce guide installe **Ohana-Installer 1.0.1**, puis Ohana-Agent et Ohana-Vision
 depuis leurs releases GitHub officielles.
 
 ## Configuration recommandée
@@ -13,7 +13,7 @@ depuis leurs releases GitHub officielles.
 * un accès Internet à GitHub et à PyPI pendant l'installation.
 
 Raspberry Pi OS Bookworm fournit normalement une version de Python trop ancienne
-pour Ohana 1.0.0. Pour passer de Bookworm à Trixie, Raspberry Pi recommande une
+pour les releases Ohana actuelles. Pour passer de Bookworm à Trixie, Raspberry Pi recommande une
 nouvelle installation du système plutôt qu'une mise à niveau majeure sur place.
 
 ## 1. Vérifier le système
@@ -47,15 +47,15 @@ sudo reboot
 ## 3. Télécharger la release officielle
 
 ```bash
-mkdir -p "$HOME/ohana-installer-1.0.0"
-cd "$HOME/ohana-installer-1.0.0"
+mkdir -p "$HOME/ohana-installer-1.0.1"
+cd "$HOME/ohana-installer-1.0.1"
 
 curl --fail --location --remote-name \
-  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/ohana_installer-1.0.0-py3-none-any.whl
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.1/ohana_installer-1.0.1-py3-none-any.whl
 curl --fail --location --remote-name \
-  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/ohana_installer-1.0.0.tar.gz
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.1/ohana_installer-1.0.1.tar.gz
 curl --fail --location --remote-name \
-  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/SHA256SUMS
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.1/SHA256SUMS
 ```
 
 ## 4. Vérifier les artefacts
@@ -75,7 +75,7 @@ Raspberry Pi OS.
 ```bash
 sudo python3.13 -m venv /opt/ohana-installer
 sudo /opt/ohana-installer/bin/python -m pip install \
-  ./ohana_installer-1.0.0-py3-none-any.whl
+  ./ohana_installer-1.0.1-py3-none-any.whl
 sudo ln -sfn /opt/ohana-installer/bin/ohana /usr/local/bin/ohana
 ```
 
@@ -88,7 +88,7 @@ ohana --version
 Résultat attendu :
 
 ```text
-ohana 1.0.0
+ohana 1.0.1
 ```
 
 ## 6. Installer la plateforme Ohana
@@ -113,26 +113,25 @@ automatisée, la confirmation peut être acceptée explicitement :
 sudo ohana install --yes
 ```
 
-## 7. Adapter la configuration
+## 7. Configurer graphiquement l'infrastructure
 
-Lors de la première installation, des configurations d'exemple sont créées :
+Avec les releases compatibles d'Ohana-Agent, Ohana-Vision et Ohana-Installer,
+la configuration courante est accessible directement dans Vision :
 
-```text
-/etc/ohana-agent/shikamaru.yaml
-/etc/ohana-agent/infrastructure.yaml
-/etc/ohana-agent/plugins/dns.yaml
-/etc/ohana-vision/vision.yaml
-```
+1. ouvrir `http://ADRESSE_IP_DU_RASPBERRY_PI:8000` ;
+2. choisir **Configuration** dans le menu ;
+3. utiliser **Baux DHCP** pour la plage, les options, les réservations et les
+   baux actifs ;
+4. utiliser **Architecture** pour les équipements, services et liaisons ;
+5. vérifier le récapitulatif puis confirmer l'application.
 
-Adapter au minimum l'infrastructure, les adresses réseau et les paramètres MQTT
-à l'environnement local. Les mises à jour suivantes conservent ces fichiers.
+Le navigateur ne lit et n'écrit aucun fichier YAML. Vision transmet les
+modifications à l'API locale authentifiée d'Agent. Celui-ci valide les documents,
+effectue des écritures atomiques et refuse une configuration DHCP que
+`dnsmasq --test` n'accepte pas.
 
-Après une modification :
-
-```bash
-sudo systemctl restart ohana-vision.service
-sudo systemctl restart ohana-agent.service
-```
+L'installateur conserve toujours les fichiers sous `/etc/ohana-agent` et
+`/etc/ohana-vision` lors des mises à jour.
 
 ## 8. Vérifier l'installation
 
@@ -164,9 +163,10 @@ sudo ohana update
 ```
 
 La commande détecte la dernière release stable d'Ohana-Platform, compare les
-versions installées, affiche le plan de mise à jour et demande confirmation. Elle
-ne modifie rien si les composants sont déjà à jour et refuse les rétrogradations
-automatiques.
+versions installées, affiche le plan de mise à jour et demande confirmation.
+Chaque composant déjà à la version cible est conservé sans téléchargement,
+arrêt ni réinstallation. La commande ne modifie rien si tous les composants sont
+déjà à jour et refuse les rétrogradations automatiques.
 
 L'option `--yes` est disponible pour une automatisation volontaire :
 

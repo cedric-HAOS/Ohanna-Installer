@@ -152,8 +152,7 @@ def render_systemd_service(
         ]
     )
 
-    return "\n".join(
-        [
+    service_lines = [
             "[Unit]",
             f"Description={service.description}",
             "Wants=network-online.target",
@@ -165,6 +164,18 @@ def render_systemd_service(
             f"Group={service.group}",
             f"WorkingDirectory={working_directory}",
             f"ExecStart={command}",
+    ]
+
+    if service.filename == "ohana-agent.service":
+        service_lines.extend(
+            [
+                "RuntimeDirectory=ohana-agent",
+                "RuntimeDirectoryMode=0750",
+            ]
+        )
+
+    service_lines.extend(
+        [
             "Restart=on-failure",
             "RestartSec=5",
             "NoNewPrivileges=true",
@@ -174,6 +185,8 @@ def render_systemd_service(
             "",
         ]
     )
+
+    return "\n".join(service_lines)
 
 
 def generate_component_service(

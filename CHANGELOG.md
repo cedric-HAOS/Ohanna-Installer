@@ -6,7 +6,25 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
 
 ---
 
-# [Unreleased]
+# [1.0.1] - 2026-07-24
+
+## Ajouté
+
+* Préparation automatique de l'administration graphique entre Vision et Agent.
+* Création d'un secret partagé distinct pour chaque compte de service, sans
+  exposition au navigateur.
+* Préparation des droits minimaux nécessaires aux écritures atomiques de
+  l'infrastructure et des fichiers DHCP gérés.
+* Installation d'une unité systemd privilégiée dédiée au rechargement de
+  dnsmasq après validation par Agent.
+* Migration automatique de l'ancien fichier `00-ohanna.conf` vers
+  `00-ohana.conf`.
+
+## Corrigé
+
+* `ohana update` ne télécharge, n'arrête et ne réinstalle plus un composant
+  lorsque sa version correspond déjà à la version cible du manifeste Platform.
+* Le plan de mise à jour indique explicitement les composants conservés.
 
 ---
 

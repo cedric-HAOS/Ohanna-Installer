@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -110,12 +111,13 @@ def _build_installed_services(
 def _build_installed_component(
     name: str,
     command_name: str,
+    version: str = "1.1.0",
 ) -> InstalledPythonComponent:
     identifier = command_name.removeprefix("ohana-")
 
     return InstalledPythonComponent(
         name=name,
-        version="1.1.0",
+        version=version,
         environment_path=Path(f"/opt/ohana-{identifier}/venv"),
         executable_path=Path(f"/opt/ohana-{identifier}/venv/bin/{command_name}"),
     )
@@ -265,6 +267,221 @@ def test_update_updates_and_restarts_official_components(
     assert "ohana-agent.service est actif" in output
     assert "ohana-vision.service est actif" in output
     assert ("Ohana-Agent et Ohana-Vision sont mis à jour, redémarrés et vérifiés.") in output
+
+
+def test_update_only_reinstalls_outdated_component(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A current component must stay installed and running."""
+    manifest = _build_manifest()
+    operations: list[str] = []
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._load_official_manifest",
+        lambda directory: manifest,
+    )
+
+    def inspect_component(**kwargs) -> InstalledPythonComponent:
+        if kwargs["component_name"] == "Ohana-Agent":
+            return _build_installed_component(
+                "Ohana-Agent",
+                "ohana-agent",
+            )
+
+        return _build_installed_component(
+            "Ohana-Vision",
+            "ohana-vision",
+            version="1.0.0",
+        )
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.inspect_installed_component",
+        inspect_component,
+    )
+
+    def selected_identifiers(selected_manifest: PlatformManifest) -> str:
+        return ",".join(
+            component.identifier
+            for component in selected_manifest.components
+        )
+
+    def download_components(
+        selected_manifest: PlatformManifest,
+        directory: Path,
+    ) -> tuple[DownloadedComponent, ...]:
+        operations.append(
+            f"download:{selected_identifiers(selected_manifest)}"
+        )
+        return _build_downloaded_components(
+            selected_manifest,
+            directory,
+        )
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._download_components",
+        download_components,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._download_configurations",
+        lambda selected_manifest, directory: (
+            operations.append(
+                f"download-config:{selected_identifiers(selected_manifest)}"
+            )
+            or ()
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._ensure_service_accounts",
+        lambda selected_manifest: (
+            operations.append(
+                f"accounts:{selected_identifiers(selected_manifest)}"
+            )
+            or ()
+        ),
+    )
+
+    def generate_services(
+        selected_manifest: PlatformManifest,
+        directory: Path,
+    ) -> tuple[GeneratedSystemdService, ...]:
+        operations.append(
+            f"generate:{selected_identifiers(selected_manifest)}"
+        )
+        return _build_generated_services(
+            selected_manifest,
+            directory,
+        )
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._generate_services",
+        generate_services,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._install_configurations",
+        lambda downloaded_files: operations.append("config") or (),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._stop_services",
+        lambda services: operations.append(
+            "stop:" + ",".join(
+                service.component.identifier
+                for service in services
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._install_agent",
+        lambda components, *, replace: pytest.fail(
+            "Ohana-Agent ne doit pas être réinstallé."
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._install_vision",
+        lambda components, *, replace: (
+            operations.append(f"vision:{replace}")
+            or _build_installed_component(
+                "Ohana-Vision",
+                "ohana-vision",
+            )
+        ),
+    )
+
+    def replace_services(
+        services: tuple[GeneratedSystemdService, ...],
+    ) -> tuple[InstalledSystemdService, ...]:
+        operations.append(
+            "replace:" + ",".join(
+                service.component.identifier
+                for service in services
+            )
+        )
+        selected_manifest = replace(
+            manifest,
+            components=tuple(
+                service.component
+                for service in services
+            ),
+        )
+        return _build_installed_services(selected_manifest)
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._replace_services",
+        replace_services,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._reload_systemd",
+        lambda: operations.append("reload"),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._enable_services",
+        lambda services: operations.append(
+            "enable:" + ",".join(
+                service.component.identifier
+                for service in services
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._start_services",
+        lambda services: operations.append(
+            "start:" + ",".join(
+                service.component.identifier
+                for service in services
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._check_services",
+        lambda services: (
+            operations.append(
+                "check:" + ",".join(
+                    service.component.identifier
+                    for service in services
+                )
+            )
+            or (
+                SystemdServiceStatus(
+                    service_name="ohana-vision.service",
+                    active=True,
+                    status="active",
+                ),
+            )
+        ),
+    )
+
+    assert main(["update", "--yes"]) == 0
+
+    assert operations == [
+        "download:vision",
+        "download-config:vision",
+        "accounts:vision",
+        "generate:vision",
+        "config",
+        "stop:vision",
+        "vision:True",
+        "replace:vision",
+        "reload",
+        "enable:vision",
+        "start:vision",
+        "check:vision",
+    ]
+
+    output = capsys.readouterr().out
+    assert "Ohana-Agent: 1.1.0 → 1.1.0 (déjà à jour, conservé)" in output
+    assert "Mise à jour d'Ohana-Agent" not in output
+    assert "Mise à jour d'Ohana-Vision" in output
+    assert "Ohana-Vision est mis à jour, redémarré et vérifié." in output
 
 
 def test_update_fails_when_environment_is_incompatible(

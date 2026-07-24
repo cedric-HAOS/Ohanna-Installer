@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import argparse
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
+from ohana_installer.administration import (
+    AdministrationPreparationError,
+    activate_administration,
+    prepare_administration,
+)
 from ohana_installer.commands.install import (
     AGENT_COMMAND_NAME,
     AGENT_ENVIRONMENT_PATH,
@@ -34,7 +40,11 @@ from ohana_installer.commands.install import (
 from ohana_installer.confirmation import confirm_action
 from ohana_installer.environment import run_environment_checks
 from ohana_installer.github import DownloadError
-from ohana_installer.manifest import ManifestError, PlatformManifest
+from ohana_installer.manifest import (
+    ComponentManifest,
+    ManifestError,
+    PlatformManifest,
+)
 from ohana_installer.python_package import (
     InstalledPythonComponent,
     PackageInstallationError,
@@ -144,7 +154,15 @@ def _display_update_plan(
         installed_version = (
             installed_component.version if installed_component is not None else "non installé"
         )
-        print(f"  {component.name}: {installed_version} → {component.version}")
+        already_current = (
+            installed_component is not None
+            and installed_component.version == component.version
+        )
+        suffix = " (déjà à jour, conservé)" if already_current else ""
+        print(
+            f"  {component.name}: {installed_version} → "
+            f"{component.version}{suffix}"
+        )
 
 
 def _versions_are_current(
@@ -158,6 +176,23 @@ def _versions_are_current(
         installed_components[component.identifier] is not None
         and installed_components[component.identifier].version == component.version
         for component in manifest.components
+    )
+
+
+def _components_requiring_update(
+    manifest: PlatformManifest,
+    installed_components: dict[
+        str,
+        InstalledPythonComponent | None,
+    ],
+) -> tuple[ComponentManifest, ...]:
+    """Sélectionner uniquement les composants absents ou obsolètes."""
+
+    return tuple(
+        component
+        for component in manifest.components
+        if installed_components[component.identifier] is None
+        or installed_components[component.identifier].version != component.version
     )
 
 
@@ -261,6 +296,19 @@ def run(args: argparse.Namespace) -> int:
                 installed_components,
             )
 
+            components_to_update = _components_requiring_update(
+                manifest,
+                installed_components,
+            )
+            update_manifest = replace(
+                manifest,
+                components=components_to_update,
+            )
+            updated_identifiers = {
+                component.identifier
+                for component in components_to_update
+            }
+
             print()
 
             if not confirm_action(
@@ -274,7 +322,7 @@ def run(args: argparse.Namespace) -> int:
             print("Téléchargement des composants...")
 
             downloaded_components = _download_components(
-                manifest,
+                update_manifest,
                 temporary_path,
             )
 
@@ -286,7 +334,7 @@ def run(args: argparse.Namespace) -> int:
             print("Téléchargement des configurations...")
 
             downloaded_configurations = _download_configurations(
-                manifest,
+                update_manifest,
                 temporary_path,
             )
 
@@ -301,7 +349,7 @@ def run(args: argparse.Namespace) -> int:
             print()
             print("Vérification des comptes système...")
 
-            system_accounts = _ensure_service_accounts(manifest)
+            system_accounts = _ensure_service_accounts(update_manifest)
 
             for system_account in system_accounts:
                 print(f"✓ Groupe système {system_account.group_name} prêt.")
@@ -311,7 +359,7 @@ def run(args: argparse.Namespace) -> int:
             print("Génération des services systemd...")
 
             generated_services = _generate_services(
-                manifest,
+                update_manifest,
                 temporary_path,
             )
 
@@ -348,6 +396,19 @@ def run(args: argparse.Namespace) -> int:
                     )
 
             print()
+            print("Préparation de l'administration graphique...")
+
+            administration = prepare_administration()
+
+            if administration.configured:
+                print("✓ Canal Agent/Vision sécurisé et configuré.")
+
+                if administration.dhcp_enabled:
+                    print("✓ Administration DHCP dnsmasq préparée.")
+                else:
+                    print("✓ DHCP absent : administration DHCP désactivée.")
+
+            print()
             print("Arrêt des services systemd...")
 
             _stop_services(generated_services)
@@ -355,22 +416,33 @@ def run(args: argparse.Namespace) -> int:
             for generated_service in generated_services:
                 print(f"✓ {generated_service.path.name} arrêté.")
 
-            print()
-            print("Mise à jour d'Ohana-Agent...")
+            if AGENT_IDENTIFIER in updated_identifiers:
+                print()
+                print("Mise à jour d'Ohana-Agent...")
 
-            installed_agent = _install_agent(downloaded_components, replace=True)
+                installed_agent = _install_agent(
+                    downloaded_components,
+                    replace=True,
+                )
 
-            print(f"✓ {installed_agent.name} {installed_agent.version} mis à jour.")
+                print(
+                    f"✓ {installed_agent.name} "
+                    f"{installed_agent.version} mis à jour."
+                )
 
-            print()
-            print("Mise à jour d'Ohana-Vision...")
+            if VISION_IDENTIFIER in updated_identifiers:
+                print()
+                print("Mise à jour d'Ohana-Vision...")
 
-            installed_vision = _install_vision(
-                downloaded_components,
-                replace=True,
-            )
+                installed_vision = _install_vision(
+                    downloaded_components,
+                    replace=True,
+                )
 
-            print(f"✓ {installed_vision.name} {installed_vision.version} mis à jour.")
+                print(
+                    f"✓ {installed_vision.name} "
+                    f"{installed_vision.version} mis à jour."
+                )
 
             print()
             print("Mise à jour des services systemd...")
@@ -395,6 +467,10 @@ def run(args: argparse.Namespace) -> int:
             _reload_systemd()
 
             print("✓ Configuration systemd rechargée.")
+            activate_administration(administration)
+
+            if administration.dhcp_enabled:
+                print("✓ Surveillance du rechargement DHCP activée.")
 
             print()
             print("Activation des services systemd...")
@@ -450,11 +526,25 @@ def run(args: argparse.Namespace) -> int:
     except ConfigurationInstallationError as error:
         print(f"✗ Mise à jour des configurations impossible : {error}")
         return UPDATE_ERROR
+    except AdministrationPreparationError as error:
+        print(f"✗ Préparation de l'administration impossible : {error}")
+        return UPDATE_ERROR
     except SystemAccountError as error:
         print(f"✗ Vérification des comptes système impossible : {error}")
         return UPDATE_ERROR
 
     print()
-    print("Ohana-Agent et Ohana-Vision sont mis à jour, redémarrés et vérifiés.")
+
+    if updated_identifiers == {
+        AGENT_IDENTIFIER,
+        VISION_IDENTIFIER,
+    }:
+        print(
+            "Ohana-Agent et Ohana-Vision sont "
+            "mis à jour, redémarrés et vérifiés."
+        )
+    else:
+        component_name = components_to_update[0].name
+        print(f"{component_name} est mis à jour, redémarré et vérifié.")
 
     return 0

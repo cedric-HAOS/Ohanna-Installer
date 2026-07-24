@@ -41,7 +41,7 @@ Ohana-Installer poursuit quatre objectifs principaux :
 
 # Fonctionnalités
 
-La version **1.0.0** fournit trois commandes principales :
+La version **1.0.1** fournit trois commandes principales :
 
 ```text
 ohana install
@@ -87,7 +87,8 @@ d'Ohana-Vision à installer.
 
 L'installateur détecte les versions présentes :
 
-* si elles correspondent déjà au manifeste, aucune modification n'est effectuée ;
+* chaque composant correspondant déjà au manifeste est conservé sans
+  téléchargement, arrêt ni réinstallation ;
 * si une version cible est plus ancienne, la rétrogradation automatique est refusée ;
 * sinon, le plan de mise à jour est affiché et doit être confirmé.
 
@@ -182,7 +183,7 @@ release stable Platform est automatique.
 
 # Compatibilité
 
-La version 1.0.0 est conçue pour les environnements Linux utilisant **systemd**.
+La version 1.0.1 est conçue pour les environnements Linux utilisant **systemd**.
 
 Prérequis : **Python 3.13 ou supérieur**. Cette contrainte correspond au
 minimum commun exigé par Ohana-Agent et Ohana-Vision.
