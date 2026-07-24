@@ -28,9 +28,7 @@ def make_configuration_files(
         encoding="utf-8",
     )
     infrastructure.write_text(
-        "infrastructure:\n"
-        "  id: ohana-house\n"
-        "  name: Ohana House\n",
+        "infrastructure:\n  id: ohana-house\n  name: Ohana House\n",
         encoding="utf-8",
     )
     vision_configuration.write_text(
@@ -52,14 +50,8 @@ def test_prepare_administration_migrates_existing_configuration(
         infrastructure,
         vision_configuration,
     ) = make_configuration_files(tmp_path)
-    agent_token = (
-        agent_configuration.parent
-        / "management.token"
-    )
-    vision_token = (
-        vision_configuration.parent
-        / "management.token"
-    )
+    agent_token = agent_configuration.parent / "management.token"
+    vision_token = vision_configuration.parent / "management.token"
 
     result = prepare_administration(
         agent_configuration_path=agent_configuration,
@@ -68,9 +60,7 @@ def test_prepare_administration_migrates_existing_configuration(
         vision_configuration_path=vision_configuration,
         vision_token_path=vision_token,
         dnsmasq_executable=tmp_path / "missing-dnsmasq",
-        dnsmasq_configuration_directory=(
-            tmp_path / "dnsmasq.d"
-        ),
+        dnsmasq_configuration_directory=(tmp_path / "dnsmasq.d"),
         systemd_directory=tmp_path / "systemd",
         require_linux=False,
         secure_ownership=False,
@@ -79,28 +69,11 @@ def test_prepare_administration_migrates_existing_configuration(
     assert result.configured is True
     assert result.dhcp_enabled is False
     assert result.token_created is True
-    assert agent_token.read_text(encoding="utf-8") == (
-        vision_token.read_text(encoding="utf-8")
-    )
-    assert (
-        "administration:\n"
-        "  enabled: true"
-        in agent_configuration.read_text(
-            encoding="utf-8"
-        )
-    )
-    assert (
-        "    enabled: false"
-        in agent_configuration.read_text(
-            encoding="utf-8"
-        )
-    )
-    assert (
-        "agent:\n"
-        "  administration_enabled: true"
-        in vision_configuration.read_text(
-            encoding="utf-8"
-        )
+    assert agent_token.read_text(encoding="utf-8") == (vision_token.read_text(encoding="utf-8"))
+    assert "administration:\n  enabled: true" in agent_configuration.read_text(encoding="utf-8")
+    assert "    enabled: false" in agent_configuration.read_text(encoding="utf-8")
+    assert "agent:\n  administration_enabled: true" in vision_configuration.read_text(
+        encoding="utf-8"
     )
 
 
@@ -120,19 +93,11 @@ def test_prepare_administration_configures_dnsmasq_once(
     arguments = {
         "agent_configuration_path": agent_configuration,
         "agent_infrastructure_path": infrastructure,
-        "agent_token_path": (
-            agent_configuration.parent
-            / "management.token"
-        ),
+        "agent_token_path": (agent_configuration.parent / "management.token"),
         "vision_configuration_path": vision_configuration,
-        "vision_token_path": (
-            vision_configuration.parent
-            / "management.token"
-        ),
+        "vision_token_path": (vision_configuration.parent / "management.token"),
         "dnsmasq_executable": dnsmasq,
-        "dnsmasq_configuration_directory": (
-            dnsmasq_directory
-        ),
+        "dnsmasq_configuration_directory": (dnsmasq_directory),
         "systemd_directory": systemd_directory,
         "require_linux": False,
         "secure_ownership": False,
@@ -144,24 +109,11 @@ def test_prepare_administration_configures_dnsmasq_once(
     assert first.dhcp_enabled is True
     assert len(first.units_installed) == 2
     assert second.token_created is False
-    assert (
-        agent_configuration.read_text(
-            encoding="utf-8"
-        ).count("administration:")
-        == 1
-    )
-    assert (
-        systemd_directory
-        / "ohana-dhcp-reload.path"
-    ).is_file()
-    assert (
-        "PathChanged=/run/ohana-agent/"
-        "dhcp-reload.request"
-        in (
-            systemd_directory
-            / "ohana-dhcp-reload.path"
-        ).read_text(encoding="utf-8")
-    )
+    assert agent_configuration.read_text(encoding="utf-8").count("administration:") == 1
+    assert (systemd_directory / "ohana-dhcp-reload.path").is_file()
+    assert "PathChanged=/run/ohana-agent/dhcp-reload.request" in (
+        systemd_directory / "ohana-dhcp-reload.path"
+    ).read_text(encoding="utf-8")
 
 
 def test_prepare_administration_migrates_legacy_dnsmasq_name(
@@ -185,15 +137,9 @@ def test_prepare_administration_migrates_legacy_dnsmasq_name(
     prepare_administration(
         agent_configuration_path=agent_configuration,
         agent_infrastructure_path=infrastructure,
-        agent_token_path=(
-            agent_configuration.parent
-            / "management.token"
-        ),
+        agent_token_path=(agent_configuration.parent / "management.token"),
         vision_configuration_path=vision_configuration,
-        vision_token_path=(
-            vision_configuration.parent
-            / "management.token"
-        ),
+        vision_token_path=(vision_configuration.parent / "management.token"),
         dnsmasq_executable=dnsmasq,
         dnsmasq_configuration_directory=dnsmasq_directory,
         systemd_directory=tmp_path / "systemd",
@@ -202,9 +148,7 @@ def test_prepare_administration_migrates_legacy_dnsmasq_name(
     )
 
     corrected = dnsmasq_directory / "00-ohana.conf"
-    assert corrected.read_text(encoding="utf-8") == (
-        "interface=eth0\n"
-    )
+    assert corrected.read_text(encoding="utf-8") == ("interface=eth0\n")
     assert not legacy.exists()
 
 

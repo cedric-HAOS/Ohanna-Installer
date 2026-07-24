@@ -148,9 +148,34 @@ L'objectif du projet est de fournir un installateur simple, fiable et reproducti
 
 ---
 
+# Version 1.0.1
+
+## 7. Administration graphique
+
+* [x] Préparer le canal local authentifié entre Ohana-Vision et Ohana-Agent.
+* [x] Générer et protéger le secret partagé.
+* [x] Préparer les droits d'écriture minimaux sur l'infrastructure et les fichiers DHCP.
+* [x] Installer les unités systemd dédiées au rechargement sécurisé de dnsmasq.
+* [x] Migrer automatiquement `00-ohanna.conf` vers `00-ohana.conf`.
+
+## 8. Mise à jour idempotente
+
+* [x] Conserver un composant déjà à la version cible.
+* [x] Ne pas télécharger, arrêter ou réinstaller un composant déjà à jour.
+* [x] Afficher clairement les composants conservés dans le plan de mise à jour.
+
+## 9. Composition validée
+
+* [x] Ohana-Platform 1.0.3.
+* [x] Ohana-Agent 1.2.0.
+* [x] Ohana-Vision 1.2.0.
+* [x] 187 tests réussis.
+
+---
+
 # Évolutions futures
 
-Les fonctionnalités suivantes sont volontairement reportées après la version 1.0.0 :
+Les fonctionnalités suivantes sont volontairement reportées après la version 1.0.1 :
 
 * Sauvegarde et restauration.
 * Retour arrière (rollback).
@@ -163,4 +188,4 @@ Les fonctionnalités suivantes sont volontairement reportées après la version 
 * Support de Kubernetes.
 * Déploiement multi-sites.
 
-La priorité de la version **1.0.0** est de fournir un installateur officiel simple, fiable et stable pour l'écosystème Ohana.
+La priorité reste de conserver un installateur officiel simple, fiable et stable pour l'écosystème Ohana.

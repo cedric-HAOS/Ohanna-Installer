@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from ohana_installer.administration import AdministrationPreparation
 from ohana_installer.cli import main
 from ohana_installer.environment import EnvironmentCheck
 from ohana_installer.github import DownloadedComponent
@@ -25,6 +26,25 @@ from ohana_installer.systemd import (
     SystemdCommandError,
     SystemdServiceStatus,
 )
+
+
+@pytest.fixture(autouse=True)
+def _prepare_administration_without_system_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparation = AdministrationPreparation(
+        configured=True,
+        dhcp_enabled=False,
+        token_created=False,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.prepare_administration",
+        lambda: preparation,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.activate_administration",
+        lambda _administration: None,
+    )
 
 
 def _build_manifest() -> PlatformManifest:
@@ -311,18 +331,13 @@ def test_update_only_reinstalls_outdated_component(
     )
 
     def selected_identifiers(selected_manifest: PlatformManifest) -> str:
-        return ",".join(
-            component.identifier
-            for component in selected_manifest.components
-        )
+        return ",".join(component.identifier for component in selected_manifest.components)
 
     def download_components(
         selected_manifest: PlatformManifest,
         directory: Path,
     ) -> tuple[DownloadedComponent, ...]:
-        operations.append(
-            f"download:{selected_identifiers(selected_manifest)}"
-        )
+        operations.append(f"download:{selected_identifiers(selected_manifest)}")
         return _build_downloaded_components(
             selected_manifest,
             directory,
@@ -335,19 +350,13 @@ def test_update_only_reinstalls_outdated_component(
     monkeypatch.setattr(
         "ohana_installer.commands.update._download_configurations",
         lambda selected_manifest, directory: (
-            operations.append(
-                f"download-config:{selected_identifiers(selected_manifest)}"
-            )
-            or ()
+            operations.append(f"download-config:{selected_identifiers(selected_manifest)}") or ()
         ),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._ensure_service_accounts",
         lambda selected_manifest: (
-            operations.append(
-                f"accounts:{selected_identifiers(selected_manifest)}"
-            )
-            or ()
+            operations.append(f"accounts:{selected_identifiers(selected_manifest)}") or ()
         ),
     )
 
@@ -355,9 +364,7 @@ def test_update_only_reinstalls_outdated_component(
         selected_manifest: PlatformManifest,
         directory: Path,
     ) -> tuple[GeneratedSystemdService, ...]:
-        operations.append(
-            f"generate:{selected_identifiers(selected_manifest)}"
-        )
+        operations.append(f"generate:{selected_identifiers(selected_manifest)}")
         return _build_generated_services(
             selected_manifest,
             directory,
@@ -374,17 +381,12 @@ def test_update_only_reinstalls_outdated_component(
     monkeypatch.setattr(
         "ohana_installer.commands.update._stop_services",
         lambda services: operations.append(
-            "stop:" + ",".join(
-                service.component.identifier
-                for service in services
-            )
+            "stop:" + ",".join(service.component.identifier for service in services)
         ),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._install_agent",
-        lambda components, *, replace: pytest.fail(
-            "Ohana-Agent ne doit pas être réinstallé."
-        ),
+        lambda components, *, replace: pytest.fail("Ohana-Agent ne doit pas être réinstallé."),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._install_vision",
@@ -401,17 +403,11 @@ def test_update_only_reinstalls_outdated_component(
         services: tuple[GeneratedSystemdService, ...],
     ) -> tuple[InstalledSystemdService, ...]:
         operations.append(
-            "replace:" + ",".join(
-                service.component.identifier
-                for service in services
-            )
+            "replace:" + ",".join(service.component.identifier for service in services)
         )
         selected_manifest = replace(
             manifest,
-            components=tuple(
-                service.component
-                for service in services
-            ),
+            components=tuple(service.component for service in services),
         )
         return _build_installed_services(selected_manifest)
 
@@ -426,29 +422,20 @@ def test_update_only_reinstalls_outdated_component(
     monkeypatch.setattr(
         "ohana_installer.commands.update._enable_services",
         lambda services: operations.append(
-            "enable:" + ",".join(
-                service.component.identifier
-                for service in services
-            )
+            "enable:" + ",".join(service.component.identifier for service in services)
         ),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._start_services",
         lambda services: operations.append(
-            "start:" + ",".join(
-                service.component.identifier
-                for service in services
-            )
+            "start:" + ",".join(service.component.identifier for service in services)
         ),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._check_services",
         lambda services: (
             operations.append(
-                "check:" + ",".join(
-                    service.component.identifier
-                    for service in services
-                )
+                "check:" + ",".join(service.component.identifier for service in services)
             )
             or (
                 SystemdServiceStatus(

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ohana_installer.administration import AdministrationPreparation
 from ohana_installer.cli import main
 from ohana_installer.environment import EnvironmentCheck
 from ohana_installer.github import DownloadedComponent, DownloadError
@@ -30,6 +31,25 @@ from ohana_installer.systemd import (
     SystemdServiceStatus,
 )
 from ohana_installer.version import __version__
+
+
+@pytest.fixture(autouse=True)
+def _prepare_administration_without_system_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparation = AdministrationPreparation(
+        configured=True,
+        dhcp_enabled=False,
+        token_created=False,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.install.prepare_administration",
+        lambda: preparation,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.install.activate_administration",
+        lambda _administration: None,
+    )
 
 
 def _build_manifest() -> PlatformManifest:

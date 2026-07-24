@@ -219,16 +219,18 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
-Installation des dépendances :
+Installation des dépendances de développement :
 
 ```bash
-pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
-Lancement des tests :
+Lancement des validations :
 
 ```bash
-pytest
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
 ```
 
 ---

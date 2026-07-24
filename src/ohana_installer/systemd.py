@@ -153,17 +153,17 @@ def render_systemd_service(
     )
 
     service_lines = [
-            "[Unit]",
-            f"Description={service.description}",
-            "Wants=network-online.target",
-            "After=network-online.target",
-            "",
-            "[Service]",
-            "Type=simple",
-            f"User={service.user}",
-            f"Group={service.group}",
-            f"WorkingDirectory={working_directory}",
-            f"ExecStart={command}",
+        "[Unit]",
+        f"Description={service.description}",
+        "Wants=network-online.target",
+        "After=network-online.target",
+        "",
+        "[Service]",
+        "Type=simple",
+        f"User={service.user}",
+        f"Group={service.group}",
+        f"WorkingDirectory={working_directory}",
+        f"ExecStart={command}",
     ]
 
     if service.filename == "ohana-agent.service":

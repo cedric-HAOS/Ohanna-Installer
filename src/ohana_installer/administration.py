@@ -14,23 +14,13 @@ from ohana_installer.systemd import (
 )
 
 AGENT_CONFIGURATION_DIRECTORY = Path("/etc/ohana-agent")
-AGENT_CONFIGURATION_PATH = (
-    AGENT_CONFIGURATION_DIRECTORY / "shikamaru.yaml"
-)
-AGENT_INFRASTRUCTURE_PATH = (
-    AGENT_CONFIGURATION_DIRECTORY / "infrastructure.yaml"
-)
-AGENT_TOKEN_PATH = (
-    AGENT_CONFIGURATION_DIRECTORY / "management.token"
-)
+AGENT_CONFIGURATION_PATH = AGENT_CONFIGURATION_DIRECTORY / "shikamaru.yaml"
+AGENT_INFRASTRUCTURE_PATH = AGENT_CONFIGURATION_DIRECTORY / "infrastructure.yaml"
+AGENT_TOKEN_PATH = AGENT_CONFIGURATION_DIRECTORY / "management.token"
 
 VISION_CONFIGURATION_DIRECTORY = Path("/etc/ohana-vision")
-VISION_CONFIGURATION_PATH = (
-    VISION_CONFIGURATION_DIRECTORY / "vision.yaml"
-)
-VISION_TOKEN_PATH = (
-    VISION_CONFIGURATION_DIRECTORY / "management.token"
-)
+VISION_CONFIGURATION_PATH = VISION_CONFIGURATION_DIRECTORY / "vision.yaml"
+VISION_TOKEN_PATH = VISION_CONFIGURATION_DIRECTORY / "management.token"
 
 DNSMASQ_EXECUTABLE = Path("/usr/sbin/dnsmasq")
 DNSMASQ_CONFIGURATION_DIRECTORY = Path("/etc/dnsmasq.d")
@@ -70,9 +60,7 @@ def prepare_administration(
     vision_configuration_path: Path = VISION_CONFIGURATION_PATH,
     vision_token_path: Path = VISION_TOKEN_PATH,
     dnsmasq_executable: Path = DNSMASQ_EXECUTABLE,
-    dnsmasq_configuration_directory: Path = (
-        DNSMASQ_CONFIGURATION_DIRECTORY
-    ),
+    dnsmasq_configuration_directory: Path = (DNSMASQ_CONFIGURATION_DIRECTORY),
     systemd_directory: Path = SYSTEMD_SYSTEM_DIRECTORY,
     require_linux: bool = True,
     secure_ownership: bool = True,
@@ -90,25 +78,13 @@ def prepare_administration(
         agent_infrastructure_path,
         vision_configuration_path,
     )
-    missing_paths = [
-        path
-        for path in required_paths
-        if not path.is_file()
-    ]
+    missing_paths = [path for path in required_paths if not path.is_file()]
 
     if missing_paths:
-        missing = ", ".join(
-            str(path) for path in missing_paths
-        )
-        raise AdministrationPreparationError(
-            "Configurations Ohana introuvables : "
-            f"{missing}."
-        )
+        missing = ", ".join(str(path) for path in missing_paths)
+        raise AdministrationPreparationError(f"Configurations Ohana introuvables : {missing}.")
 
-    dhcp_enabled = (
-        dnsmasq_executable.is_file()
-        and dnsmasq_configuration_directory.is_dir()
-    )
+    dhcp_enabled = dnsmasq_executable.is_file() and dnsmasq_configuration_directory.is_dir()
     token, token_created = _resolve_token(
         agent_token_path,
         vision_token_path,
@@ -200,9 +176,7 @@ def _resolve_token(
         if not path.is_file():
             continue
 
-        token = path.read_text(
-            encoding="utf-8"
-        ).strip()
+        token = path.read_text(encoding="utf-8").strip()
 
         if token:
             return token, False
@@ -303,10 +277,7 @@ def _prepare_dnsmasq_files(
     legacy_main_path = directory / "00-ohanna.conf"
     corrected_main_path = directory / "00-ohana.conf"
 
-    if (
-        legacy_main_path.is_file()
-        and not corrected_main_path.exists()
-    ):
+    if legacy_main_path.is_file() and not corrected_main_path.exists():
         legacy_main_path.replace(corrected_main_path)
 
     if secure_ownership:
@@ -323,9 +294,7 @@ def _prepare_dnsmasq_files(
             path.touch()
 
         if not path.is_file() or path.is_symlink():
-            raise AdministrationPreparationError(
-                f"Fichier dnsmasq non régulier : {path}."
-            )
+            raise AdministrationPreparationError(f"Fichier dnsmasq non régulier : {path}.")
 
         if secure_ownership:
             _secure_mutable_path(
@@ -350,8 +319,7 @@ def _secure_mutable_path(
         path.chmod(mode)
     except (LookupError, OSError) as error:
         raise AdministrationPreparationError(
-            f"Impossible de sécuriser {path} "
-            f"(root:{group_name}, {mode:04o}) : {error}"
+            f"Impossible de sécuriser {path} (root:{group_name}, {mode:04o}) : {error}"
         ) from error
 
 
@@ -362,14 +330,8 @@ def _install_reload_units(
         parents=True,
         exist_ok=True,
     )
-    service_path = (
-        systemd_directory
-        / DHCP_RELOAD_SERVICE_NAME
-    )
-    path_unit_path = (
-        systemd_directory
-        / DHCP_RELOAD_PATH_NAME
-    )
+    service_path = systemd_directory / DHCP_RELOAD_SERVICE_NAME
+    path_unit_path = systemd_directory / DHCP_RELOAD_PATH_NAME
     service_path.write_text(
         _reload_service_content(),
         encoding="utf-8",
@@ -398,10 +360,7 @@ def _reload_service_content() -> str:
             "",
             "[Service]",
             "Type=oneshot",
-            (
-                "ExecStart=/usr/bin/systemctl "
-                "reload-or-restart dnsmasq.service"
-            ),
+            ("ExecStart=/usr/bin/systemctl reload-or-restart dnsmasq.service"),
             "NoNewPrivileges=true",
             "ProtectSystem=strict",
             "ProtectHome=true",
@@ -417,10 +376,7 @@ def _reload_path_content() -> str:
             "Description=Watch Ohana DHCP reload requests",
             "",
             "[Path]",
-            (
-                "PathChanged="
-                "/run/ohana-agent/dhcp-reload.request"
-            ),
+            ("PathChanged=/run/ohana-agent/dhcp-reload.request"),
             f"Unit={DHCP_RELOAD_SERVICE_NAME}",
             "",
             "[Install]",

@@ -26,6 +26,12 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
   lorsque sa version correspond déjà à la version cible du manifeste Platform.
 * Le plan de mise à jour indique explicitement les composants conservés.
 
+## Validation
+
+* Manifeste aligné sur Ohana-Platform 1.0.3, Ohana-Agent 1.2.0 et
+  Ohana-Vision 1.2.0.
+* 187 tests réussis.
+
 ---
 
 # [1.0.0] - 2026-07-24

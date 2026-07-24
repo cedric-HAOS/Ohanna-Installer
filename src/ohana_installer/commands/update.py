@@ -155,14 +155,10 @@ def _display_update_plan(
             installed_component.version if installed_component is not None else "non installé"
         )
         already_current = (
-            installed_component is not None
-            and installed_component.version == component.version
+            installed_component is not None and installed_component.version == component.version
         )
         suffix = " (déjà à jour, conservé)" if already_current else ""
-        print(
-            f"  {component.name}: {installed_version} → "
-            f"{component.version}{suffix}"
-        )
+        print(f"  {component.name}: {installed_version} → {component.version}{suffix}")
 
 
 def _versions_are_current(
@@ -304,10 +300,7 @@ def run(args: argparse.Namespace) -> int:
                 manifest,
                 components=components_to_update,
             )
-            updated_identifiers = {
-                component.identifier
-                for component in components_to_update
-            }
+            updated_identifiers = {component.identifier for component in components_to_update}
 
             print()
 
@@ -425,10 +418,7 @@ def run(args: argparse.Namespace) -> int:
                     replace=True,
                 )
 
-                print(
-                    f"✓ {installed_agent.name} "
-                    f"{installed_agent.version} mis à jour."
-                )
+                print(f"✓ {installed_agent.name} {installed_agent.version} mis à jour.")
 
             if VISION_IDENTIFIER in updated_identifiers:
                 print()
@@ -439,10 +429,7 @@ def run(args: argparse.Namespace) -> int:
                     replace=True,
                 )
 
-                print(
-                    f"✓ {installed_vision.name} "
-                    f"{installed_vision.version} mis à jour."
-                )
+                print(f"✓ {installed_vision.name} {installed_vision.version} mis à jour.")
 
             print()
             print("Mise à jour des services systemd...")
@@ -539,10 +526,7 @@ def run(args: argparse.Namespace) -> int:
         AGENT_IDENTIFIER,
         VISION_IDENTIFIER,
     }:
-        print(
-            "Ohana-Agent et Ohana-Vision sont "
-            "mis à jour, redémarrés et vérifiés."
-        )
+        print("Ohana-Agent et Ohana-Vision sont mis à jour, redémarrés et vérifiés.")
     else:
         component_name = components_to_update[0].name
         print(f"{component_name} est mis à jour, redémarré et vérifié.")
