@@ -279,6 +279,7 @@ def test_build_release_download_url() -> None:
         "v1.0.0/ohana_agent-1.0.0-py3-none-any.whl"
     )
 
+
 def test_repository_manifest_is_valid() -> None:
     repository_root = Path(__file__).resolve().parents[1]
     manifest_path = repository_root / "config" / "release-manifest.yaml"
@@ -293,30 +294,19 @@ def test_repository_manifest_is_valid() -> None:
         "vision",
     }
 
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     assert agent.version == "1.1.1"
     assert agent.release_tag == "v1.1.1"
-    assert agent.package.filename == (
-        "ohana_agent-1.1.1-py3-none-any.whl"
-    )
+    assert agent.package.filename == ("ohana_agent-1.1.1-py3-none-any.whl")
     assert agent.configuration is not None
     assert agent.service is not None
     assert agent.service.user == "ohana-agent"
     assert agent.service.group == "ohana-agent"
-    assert tuple(
-        configuration_file.source
-        for configuration_file in agent.configuration.files
-    ) == (
+    assert tuple(configuration_file.source for configuration_file in agent.configuration.files) == (
         "shikamaru.example.yaml",
         "infrastructure.example.yaml",
         "dns.example.yaml",
@@ -324,27 +314,20 @@ def test_repository_manifest_is_valid() -> None:
 
     assert vision.version == "1.1.1"
     assert vision.release_tag == "v1.1.1"
-    assert vision.package.filename == (
-        "ohana_vision-1.1.1-py3-none-any.whl"
-    )
+    assert vision.package.filename == ("ohana_vision-1.1.1-py3-none-any.whl")
     assert vision.configuration is not None
     assert vision.service is not None
     assert vision.service.user == "ohana-vision"
     assert vision.service.group == "ohana-vision"
     assert tuple(
-        configuration_file.source
-        for configuration_file in vision.configuration.files
+        configuration_file.source for configuration_file in vision.configuration.files
     ) == ("vision.example.yaml",)
 
 
 def test_repository_manifest_runtime_matches_installer() -> None:
     repository_root = Path(__file__).resolve().parents[1]
-    manifest = load_manifest(
-        repository_root / "config" / "release-manifest.yaml"
-    )
-    expected_version = ".".join(
-        str(part) for part in MINIMUM_PYTHON_VERSION
-    )
+    manifest = load_manifest(repository_root / "config" / "release-manifest.yaml")
+    expected_version = ".".join(str(part) for part in MINIMUM_PYTHON_VERSION)
 
     assert manifest.runtime.minimum_python_version == expected_version
 
@@ -352,28 +335,19 @@ def test_repository_manifest_runtime_matches_installer() -> None:
 def test_parse_manifest_reads_agent_configuration() -> None:
     manifest = parse_manifest(VALID_MANIFEST)
 
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
 
     assert agent.configuration is not None
     assert agent.configuration.directory == Path("/etc/ohana-agent")
     assert agent.configuration.files[0].source == "shikamaru.yaml"
-    assert (
-        agent.configuration.files[2].destination
-        == Path("plugins/dns.yaml")
-    )
+    assert agent.configuration.files[2].destination == Path("plugins/dns.yaml")
 
 
 def test_parse_manifest_accepts_component_without_configuration() -> None:
     manifest = parse_manifest(VALID_MANIFEST)
 
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     assert vision.configuration is None
@@ -459,18 +433,13 @@ def test_parse_manifest_rejects_parent_directory_in_destination() -> None:
     ):
         parse_manifest(raw_manifest)
 
+
 def test_parse_manifest_reads_component_services() -> None:
     manifest = parse_manifest(VALID_MANIFEST)
 
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     assert agent.service is not None

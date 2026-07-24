@@ -59,8 +59,7 @@ def ensure_system_account(
 
         if group_gid is None:
             raise SystemAccountError(
-                f"Le groupe système {group_name} reste introuvable "
-                "après sa création."
+                f"Le groupe système {group_name} reste introuvable après sa création."
             )
 
     user_gid = _get_user_primary_gid(username)
@@ -68,9 +67,7 @@ def ensure_system_account(
 
     if user_created:
         resolved_shell = (
-            Path(nologin_shell)
-            if nologin_shell is not None
-            else _resolve_nologin_shell()
+            Path(nologin_shell) if nologin_shell is not None else _resolve_nologin_shell()
         )
 
         _run_account_command(
@@ -93,8 +90,7 @@ def ensure_system_account(
 
         if user_gid is None:
             raise SystemAccountError(
-                f"Le compte système {username} reste introuvable "
-                "après sa création."
+                f"Le compte système {username} reste introuvable après sa création."
             )
 
     if user_gid != group_gid:
@@ -116,9 +112,7 @@ def _validate_account_name(name: str, *, label: str) -> None:
     """Valider un nom de compte compatible avec les outils Linux."""
 
     if not ACCOUNT_NAME_PATTERN.fullmatch(name):
-        raise SystemAccountError(
-            f"Nom de {label} système invalide : {name!r}."
-        )
+        raise SystemAccountError(f"Nom de {label} système invalide : {name!r}.")
 
 
 def _get_group_gid(group_name: str) -> int | None:
@@ -127,9 +121,7 @@ def _get_group_gid(group_name: str) -> int | None:
     try:
         import grp
     except ImportError as error:
-        raise SystemAccountError(
-            "La gestion des groupes système nécessite Linux."
-        ) from error
+        raise SystemAccountError("La gestion des groupes système nécessite Linux.") from error
 
     try:
         return grp.getgrnam(group_name).gr_gid
@@ -143,9 +135,7 @@ def _get_user_primary_gid(username: str) -> int | None:
     try:
         import pwd
     except ImportError as error:
-        raise SystemAccountError(
-            "La gestion des utilisateurs système nécessite Linux."
-        ) from error
+        raise SystemAccountError("La gestion des utilisateurs système nécessite Linux.") from error
 
     try:
         return pwd.getpwnam(username).pw_gid
@@ -181,21 +171,13 @@ def _run_account_command(
             timeout=timeout,
         )
     except subprocess.TimeoutExpired as error:
-        raise SystemAccountError(
-            f"La {description} a dépassé le délai autorisé."
-        ) from error
+        raise SystemAccountError(f"La {description} a dépassé le délai autorisé.") from error
     except subprocess.CalledProcessError as error:
         details = error.stderr.strip() or error.stdout.strip()
 
         if details:
-            raise SystemAccountError(
-                f"La {description} a échoué : {details}"
-            ) from error
+            raise SystemAccountError(f"La {description} a échoué : {details}") from error
 
-        raise SystemAccountError(
-            f"La {description} a échoué."
-        ) from error
+        raise SystemAccountError(f"La {description} a échoué.") from error
     except OSError as error:
-        raise SystemAccountError(
-            f"Impossible d'exécuter la {description} : {error}"
-        ) from error
+        raise SystemAccountError(f"Impossible d'exécuter la {description} : {error}") from error

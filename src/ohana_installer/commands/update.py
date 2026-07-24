@@ -127,10 +127,7 @@ def run(args: argparse.Namespace) -> int:
 
             for downloaded_component in downloaded_components:
                 component = downloaded_component.component
-                print(
-                    f"✓ {component.name} "
-                    f"{component.version} téléchargé."
-                )
+                print(f"✓ {component.name} {component.version} téléchargé.")
 
             print()
             print("Téléchargement des configurations...")
@@ -154,12 +151,8 @@ def run(args: argparse.Namespace) -> int:
             system_accounts = _ensure_service_accounts(manifest)
 
             for system_account in system_accounts:
-                print(
-                    f"✓ Groupe système {system_account.group_name} prêt."
-                )
-                print(
-                    f"✓ Compte système {system_account.username} prêt."
-                )
+                print(f"✓ Groupe système {system_account.group_name} prêt.")
+                print(f"✓ Compte système {system_account.username} prêt.")
 
             print()
             print("Génération des services systemd...")
@@ -214,10 +207,7 @@ def run(args: argparse.Namespace) -> int:
 
             installed_agent = _install_agent(downloaded_components, replace=True)
 
-            print(
-                f"✓ {installed_agent.name} "
-                f"{installed_agent.version} mis à jour."
-            )
+            print(f"✓ {installed_agent.name} {installed_agent.version} mis à jour.")
 
             print()
             print("Mise à jour d'Ohana-Vision...")
@@ -227,10 +217,7 @@ def run(args: argparse.Namespace) -> int:
                 replace=True,
             )
 
-            print(
-                f"✓ {installed_vision.name} "
-                f"{installed_vision.version} mis à jour."
-            )
+            print(f"✓ {installed_vision.name} {installed_vision.version} mis à jour.")
 
             print()
             print("Mise à jour des services systemd...")
@@ -247,10 +234,7 @@ def run(args: argparse.Namespace) -> int:
                 elif installed_service.updated:
                     print(f"✓ {destination} remplacé.")
                 else:
-                    print(
-                        f"✓ {destination} conservé "
-                        "(déjà identique)."
-                    )
+                    print(f"✓ {destination} conservé (déjà identique).")
 
             print()
             print("Rechargement de systemd...")
@@ -265,9 +249,7 @@ def run(args: argparse.Namespace) -> int:
             _enable_services(installed_services)
 
             for installed_service in installed_services:
-                print(
-                    f"✓ {installed_service.destination_path.name} activé."
-                )
+                print(f"✓ {installed_service.destination_path.name} activé.")
 
             print()
             print("Redémarrage des services systemd...")
@@ -275,9 +257,7 @@ def run(args: argparse.Namespace) -> int:
             _start_services(installed_services)
 
             for installed_service in installed_services:
-                print(
-                    f"✓ {installed_service.destination_path.name} démarré."
-                )
+                print(f"✓ {installed_service.destination_path.name} démarré.")
 
             print()
             print("Vérification des services systemd...")
@@ -290,9 +270,7 @@ def run(args: argparse.Namespace) -> int:
                 if status.active:
                     print(f"✓ {status.service_name} est actif.")
                 else:
-                    print(
-                        f"✗ {status.service_name} est {status.status}."
-                    )
+                    print(f"✗ {status.service_name} est {status.status}.")
                     all_services_active = False
 
             if not all_services_active:
@@ -324,9 +302,6 @@ def run(args: argparse.Namespace) -> int:
         return UPDATE_ERROR
 
     print()
-    print(
-        "Ohana-Agent et Ohana-Vision sont mis à jour, "
-        "redémarrés et vérifiés."
-    )
+    print("Ohana-Agent et Ohana-Vision sont mis à jour, redémarrés et vérifiés.")
 
     return 0

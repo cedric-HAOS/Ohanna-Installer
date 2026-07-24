@@ -171,9 +171,7 @@ def _configuration_directories(
     """Lister les répertoires déclarés jusqu'au fichier final."""
 
     try:
-        relative_parent = destination_path.parent.relative_to(
-            configuration_directory
-        )
+        relative_parent = destination_path.parent.relative_to(configuration_directory)
     except ValueError as error:
         raise ConfigurationInstallationError(
             f"La destination {destination_path} sort du répertoire "
@@ -237,14 +235,12 @@ def _prepare_configuration_directories(
 
         if directory.is_symlink():
             raise ConfigurationInstallationError(
-                f"Le répertoire de configuration {directory} "
-                "ne peut pas être un lien symbolique."
+                f"Le répertoire de configuration {directory} ne peut pas être un lien symbolique."
             )
 
         if not directory.is_dir():
             raise ConfigurationInstallationError(
-                f"Le chemin de configuration {directory} "
-                "n'est pas un répertoire."
+                f"Le chemin de configuration {directory} n'est pas un répertoire."
             )
 
         _secure_configuration_path(
@@ -264,15 +260,11 @@ def _install_configuration_file(
 
     if configuration is None:
         raise ConfigurationInstallationError(
-            f"{component.name} ne déclare "
-            "aucun répertoire de configuration."
+            f"{component.name} ne déclare aucun répertoire de configuration."
         )
 
     source_path = downloaded_file.path
-    destination_path = (
-        configuration.directory
-        / downloaded_file.configuration_file.destination
-    )
+    destination_path = configuration.directory / downloaded_file.configuration_file.destination
     group_name = _configuration_group_name(component)
 
     if not source_path.is_file():
@@ -282,14 +274,12 @@ def _install_configuration_file(
 
     if destination_path.is_symlink():
         raise ConfigurationInstallationError(
-            f"La destination {destination_path} "
-            "ne peut pas être un lien symbolique."
+            f"La destination {destination_path} ne peut pas être un lien symbolique."
         )
 
     if destination_path.exists() and not destination_path.is_file():
         raise ConfigurationInstallationError(
-            f"La destination {destination_path} existe "
-            "mais n'est pas un fichier."
+            f"La destination {destination_path} existe mais n'est pas un fichier."
         )
 
     _prepare_configuration_directories(
@@ -339,8 +329,7 @@ def _install_configurations(
     """Installer tous les modèles de configuration téléchargés."""
 
     return tuple(
-        _install_configuration_file(downloaded_file)
-        for downloaded_file in downloaded_files
+        _install_configuration_file(downloaded_file) for downloaded_file in downloaded_files
     )
 
 
@@ -371,9 +360,7 @@ def _find_downloaded_component(
         if downloaded_component.component.identifier == identifier:
             return downloaded_component
 
-    raise PackageInstallationError(
-        f"Le composant {identifier} est absent des téléchargements."
-    )
+    raise PackageInstallationError(f"Le composant {identifier} est absent des téléchargements.")
 
 
 def _prepare_installation_path(
@@ -385,14 +372,12 @@ def _prepare_installation_path(
 
     if installation_path.is_symlink():
         raise PackageInstallationError(
-            f"Le répertoire d'installation {installation_path} "
-            "ne peut pas être un lien symbolique."
+            f"Le répertoire d'installation {installation_path} ne peut pas être un lien symbolique."
         )
 
     if installation_path.exists() and not installation_path.is_dir():
         raise PackageInstallationError(
-            f"Le chemin d'installation {installation_path} "
-            "n'est pas un répertoire."
+            f"Le chemin d'installation {installation_path} n'est pas un répertoire."
         )
 
     if not replace or not installation_path.exists():
@@ -402,8 +387,7 @@ def _prepare_installation_path(
         shutil.rmtree(installation_path)
     except OSError as error:
         raise PackageInstallationError(
-            f"Impossible de remplacer l'installation "
-            f"{installation_path} : {error}"
+            f"Impossible de remplacer l'installation {installation_path} : {error}"
         ) from error
 
     return True
@@ -550,10 +534,7 @@ def run(args: argparse.Namespace) -> int:
 
             for downloaded_component in downloaded_components:
                 component = downloaded_component.component
-                print(
-                    f"✓ {component.name} "
-                    f"{component.version} téléchargé."
-                )
+                print(f"✓ {component.name} {component.version} téléchargé.")
 
             print()
             print("Téléchargement des configurations...")
@@ -577,35 +558,18 @@ def run(args: argparse.Namespace) -> int:
             system_accounts = _ensure_service_accounts(manifest)
 
             for system_account in system_accounts:
-                group_status = (
-                    "créé"
-                    if system_account.group_created
-                    else "déjà présent"
-                )
-                user_status = (
-                    "créé"
-                    if system_account.user_created
-                    else "déjà présent"
-                )
+                group_status = "créé" if system_account.group_created else "déjà présent"
+                user_status = "créé" if system_account.user_created else "déjà présent"
 
-                print(
-                    f"✓ Groupe système {system_account.group_name} "
-                    f"{group_status}."
-                )
-                print(
-                    f"✓ Compte système {system_account.username} "
-                    f"{user_status}."
-                )
+                print(f"✓ Groupe système {system_account.group_name} {group_status}.")
+                print(f"✓ Compte système {system_account.username} {user_status}.")
 
             print()
             print("Installation d'Ohana-Agent...")
 
             installed_agent = _install_agent(downloaded_components)
 
-            print(
-                f"✓ {installed_agent.name} "
-                f"{installed_agent.version} installé."
-            )
+            print(f"✓ {installed_agent.name} {installed_agent.version} installé.")
             print()
             print("Installation d'Ohana-Vision...")
 
@@ -613,10 +577,7 @@ def run(args: argparse.Namespace) -> int:
                 downloaded_components,
             )
 
-            print(
-                f"✓ {installed_vision.name} "
-                f"{installed_vision.version} installé."
-            )
+            print(f"✓ {installed_vision.name} {installed_vision.version} installé.")
             print()
             print("Installation des fichiers de configuration...")
 
@@ -656,7 +617,7 @@ def run(args: argparse.Namespace) -> int:
                     f"✓ {generated_service.path.name} généré "
                     f"pour {generated_service.component.name}."
                 )
-            
+
             print()
             print("Installation des services systemd...")
 
@@ -666,14 +627,9 @@ def run(args: argparse.Namespace) -> int:
 
             for installed_service in installed_services:
                 if installed_service.created:
-                    print(
-                        f"✓ {installed_service.destination_path} installé."
-                    )
+                    print(f"✓ {installed_service.destination_path} installé.")
                 else:
-                    print(
-                        f"✓ {installed_service.destination_path} conservé "
-                        "(déjà identique)."
-                    )
+                    print(f"✓ {installed_service.destination_path} conservé (déjà identique).")
             print()
             print("Rechargement de systemd...")
 
@@ -686,18 +642,14 @@ def run(args: argparse.Namespace) -> int:
             _enable_services(installed_services)
 
             for installed_service in installed_services:
-                print(
-                    f"✓ {installed_service.destination_path.name} activé."
-                )
+                print(f"✓ {installed_service.destination_path.name} activé.")
             print()
             print("Démarrage des services systemd...")
 
             _start_services(installed_services)
 
             for installed_service in installed_services:
-                print(
-                    f"✓ {installed_service.destination_path.name} démarré."
-                )
+                print(f"✓ {installed_service.destination_path.name} démarré.")
             print()
             print("Vérification des services systemd...")
 
@@ -707,9 +659,7 @@ def run(args: argparse.Namespace) -> int:
                 if status.active:
                     print(f"✓ {status.service_name} est actif.")
                 else:
-                    print(
-                        f"✗ {status.service_name} est {status.status}."
-                    )
+                    print(f"✗ {status.service_name} est {status.status}.")
                     return INSTALLATION_ERROR
 
     except SystemdCommandError as error:
@@ -738,12 +688,10 @@ def run(args: argparse.Namespace) -> int:
         return INSTALLATION_ERROR
 
     print()
-    print(
-        "Ohana-Agent et Ohana-Vision sont installés, "
-        "configurés, activés et démarrés."
-    )
+    print("Ohana-Agent et Ohana-Vision sont installés, configurés, activés et démarrés.")
 
     return 0
+
 
 def _generate_services(
     manifest: PlatformManifest,
@@ -756,6 +704,7 @@ def _generate_services(
         directory / "systemd",
     )
 
+
 def _install_services(
     generated_services: tuple[GeneratedSystemdService, ...],
 ) -> tuple[InstalledSystemdService, ...]:
@@ -765,6 +714,7 @@ def _install_services(
         generated_services,
     )
 
+
 def _enable_services(
     installed_services: tuple[InstalledSystemdService, ...],
 ) -> None:
@@ -772,12 +722,14 @@ def _enable_services(
 
     enable_systemd_services(installed_services)
 
+
 def _start_services(
     installed_services: tuple[InstalledSystemdService, ...],
 ) -> None:
     """Démarrer les services systemd installés."""
 
     start_systemd_services(installed_services)
+
 
 def _check_services(
     installed_services: tuple[InstalledSystemdService, ...],

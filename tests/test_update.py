@@ -98,13 +98,8 @@ def _build_installed_services(
     return tuple(
         InstalledSystemdService(
             component=component,
-            source_path=Path(
-                f"/tmp/ohana-{component.identifier}.service"
-            ),
-            destination_path=Path(
-                f"/etc/systemd/system/"
-                f"ohana-{component.identifier}.service"
-            ),
+            source_path=Path(f"/tmp/ohana-{component.identifier}.service"),
+            destination_path=Path(f"/etc/systemd/system/ohana-{component.identifier}.service"),
             created=False,
             updated=True,
         )
@@ -122,9 +117,7 @@ def _build_installed_component(
         name=name,
         version="1.1.0",
         environment_path=Path(f"/opt/ohana-{identifier}/venv"),
-        executable_path=Path(
-            f"/opt/ohana-{identifier}/venv/bin/{command_name}"
-        ),
+        executable_path=Path(f"/opt/ohana-{identifier}/venv/bin/{command_name}"),
     )
 
 
@@ -161,9 +154,7 @@ def test_update_updates_and_restarts_official_components(
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._download_configurations",
-        lambda manifest, directory: (
-            operations.append("download-config") or ()
-        ),
+        lambda manifest, directory: operations.append("download-config") or (),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._ensure_service_accounts",
@@ -185,9 +176,7 @@ def test_update_updates_and_restarts_official_components(
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._install_configurations",
-        lambda downloaded_files: (
-            operations.append("config") or ()
-        ),
+        lambda downloaded_files: operations.append("config") or (),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._stop_services",
@@ -215,10 +204,7 @@ def test_update_updates_and_restarts_official_components(
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._replace_services",
-        lambda services: (
-            operations.append("replace")
-            or installed_services
-        ),
+        lambda services: operations.append("replace") or installed_services,
     )
     monkeypatch.setattr(
         "ohana_installer.commands.update._reload_systemd",
@@ -278,10 +264,7 @@ def test_update_updates_and_restarts_official_components(
     assert "Ohana-Vision 1.1.0 mis à jour" in output
     assert "ohana-agent.service est actif" in output
     assert "ohana-vision.service est actif" in output
-    assert (
-        "Ohana-Agent et Ohana-Vision sont mis à jour, "
-        "redémarrés et vérifiés."
-    ) in output
+    assert ("Ohana-Agent et Ohana-Vision sont mis à jour, redémarrés et vérifiés.") in output
 
 
 def test_update_fails_when_environment_is_incompatible(

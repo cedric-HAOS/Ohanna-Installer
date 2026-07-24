@@ -28,21 +28,15 @@ def test_uninstall_removes_services_and_components(
     )
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall.stop_systemd_service",
-        lambda service_name: operations.append(
-            f"stop:{service_name}"
-        ),
+        lambda service_name: operations.append(f"stop:{service_name}"),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall.disable_systemd_service",
-        lambda service_name: operations.append(
-            f"disable:{service_name}"
-        ),
+        lambda service_name: operations.append(f"disable:{service_name}"),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall.remove_systemd_service",
-        lambda service_name: (
-            operations.append(f"remove:{service_name}") or True
-        ),
+        lambda service_name: operations.append(f"remove:{service_name}") or True,
     )
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall.reload_systemd_daemon",
@@ -50,9 +44,7 @@ def test_uninstall_removes_services_and_components(
     )
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall._remove_installation_path",
-        lambda path: (
-            operations.append(f"path:{path}") or True
-        ),
+        lambda path: operations.append(f"path:{path}") or True,
     )
 
     assert main(["uninstall"]) == 0
@@ -75,12 +67,8 @@ def test_uninstall_removes_services_and_components(
     assert "ohana-vision.service désactivé" in output
     assert f"{AGENT_INSTALLATION_PATH} supprimé" in output
     assert f"{VISION_INSTALLATION_PATH} supprimé" in output
-    assert (
-        "Ohana-Agent et Ohana-Vision sont désinstallés."
-    ) in output
-    assert (
-        "Les fichiers de configuration ont été conservés."
-    ) in output
+    assert ("Ohana-Agent et Ohana-Vision sont désinstallés.") in output
+    assert ("Les fichiers de configuration ont été conservés.") in output
 
 
 def test_uninstall_accepts_already_absent_installation(
@@ -115,9 +103,7 @@ def test_uninstall_fails_when_service_stop_fails(
     )
 
     def raise_stop_error(service_name: str) -> None:
-        raise SystemdCommandError(
-            f"arrêt refusé pour {service_name}"
-        )
+        raise SystemdCommandError(f"arrêt refusé pour {service_name}")
 
     monkeypatch.setattr(
         "ohana_installer.commands.uninstall.stop_systemd_service",

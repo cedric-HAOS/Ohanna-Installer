@@ -252,6 +252,7 @@ def test_download_platform_manifest_removes_invalid_manifest(
 
     assert not destination.exists()
 
+
 def _build_component(
     *,
     identifier: str = "agent",
@@ -271,6 +272,7 @@ def _build_component(
         ),
         configuration=configuration,
     )
+
 
 def test_download_component_package_downloads_wheel(
     tmp_path: Path,
@@ -400,6 +402,7 @@ def test_download_component_packages_stops_on_first_error(
 
     assert attempted_components == ["agent"]
 
+
 def test_download_component_configuration_files_downloads_agent_files(
     tmp_path: Path,
     monkeypatch,
@@ -445,25 +448,11 @@ def test_download_component_configuration_files_downloads_agent_files(
     )
 
     assert len(results) == 2
-    assert all(
-        isinstance(result, DownloadedConfigurationFile)
-        for result in results
-    )
-    assert results[0].path == (
-        tmp_path
-        / "configuration"
-        / "agent"
-        / "shikamaru.yaml"
-    )
+    assert all(isinstance(result, DownloadedConfigurationFile) for result in results)
+    assert results[0].path == (tmp_path / "configuration" / "agent" / "shikamaru.yaml")
     assert downloaded_urls == [
-        (
-            "https://github.com/cedric-HAOS/Ohana-Agent/releases/"
-            "download/v1.0.0/shikamaru.yaml"
-        ),
-        (
-            "https://github.com/cedric-HAOS/Ohana-Agent/releases/"
-            "download/v1.0.0/dns.yaml"
-        ),
+        ("https://github.com/cedric-HAOS/Ohana-Agent/releases/download/v1.0.0/shikamaru.yaml"),
+        ("https://github.com/cedric-HAOS/Ohana-Agent/releases/download/v1.0.0/dns.yaml"),
     ]
 
 

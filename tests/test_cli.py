@@ -89,9 +89,7 @@ def _build_installed_agent() -> InstalledPythonComponent:
         name="Ohana-Agent",
         version="1.0.0",
         environment_path=Path("/opt/ohana-agent/venv"),
-        executable_path=Path(
-            "/opt/ohana-agent/venv/bin/ohana-agent"
-        ),
+        executable_path=Path("/opt/ohana-agent/venv/bin/ohana-agent"),
     )
 
 
@@ -99,32 +97,22 @@ def _build_installed_services(
     manifest: PlatformManifest,
     directory: Path,
 ) -> tuple[InstalledSystemdService, ...]:
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     return (
         InstalledSystemdService(
             component=agent,
             source_path=directory / "ohana-agent.service",
-            destination_path=Path(
-                "/etc/systemd/system/ohana-agent.service"
-            ),
+            destination_path=Path("/etc/systemd/system/ohana-agent.service"),
             created=True,
         ),
         InstalledSystemdService(
             component=vision,
             source_path=directory / "ohana-vision.service",
-            destination_path=Path(
-                "/etc/systemd/system/ohana-vision.service"
-            ),
+            destination_path=Path("/etc/systemd/system/ohana-vision.service"),
             created=True,
         ),
     )
@@ -167,6 +155,7 @@ def test_cli_displays_help(
     assert "update" in output
     assert "uninstall" in output
     assert "--version" in output
+
 
 @pytest.mark.parametrize(
     "command",
@@ -324,9 +313,7 @@ def test_load_official_manifest_uses_expected_destination(
     result = _load_official_manifest(tmp_path)
 
     assert result == expected_manifest
-    assert received_destination == (
-        tmp_path / "release-manifest.yaml"
-    )
+    assert received_destination == (tmp_path / "release-manifest.yaml")
 
 
 def test_install_downloads_and_installs_official_components(
@@ -439,8 +426,7 @@ def test_install_downloads_and_installs_official_components(
     assert "ohana-agent.service est actif" in output
     assert "ohana-vision.service est actif" in output
     assert (
-        "Ohana-Agent et Ohana-Vision sont installés, "
-        "configurés, activés et démarrés."
+        "Ohana-Agent et Ohana-Vision sont installés, configurés, activés et démarrés."
     ) in output
 
 
@@ -564,11 +550,7 @@ def test_install_agent_creates_environment_and_installs_wheel(
 ) -> None:
     manifest = _build_manifest()
 
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
 
     wheel_path = tmp_path / agent.package.filename
 
@@ -597,9 +579,7 @@ def test_install_agent_creates_environment_and_installs_wheel(
         nonlocal installed_wheel
         installed_wheel = package_path
 
-        assert environment_path == Path(
-            "/opt/ohana-agent/venv"
-        )
+        assert environment_path == Path("/opt/ohana-agent/venv")
 
     expected_component = _build_installed_agent()
 
@@ -618,9 +598,7 @@ def test_install_agent_creates_environment_and_installs_wheel(
     secured_installations: list[tuple[Path, str, str]] = []
     monkeypatch.setattr(
         "ohana_installer.commands.install.secure_installation_tree",
-        lambda path, *, owner, group: secured_installations.append(
-            (Path(path), owner, group)
-        ),
+        lambda path, *, owner, group: secured_installations.append((Path(path), owner, group)),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.install._reload_systemd",
@@ -635,14 +613,13 @@ def test_install_agent_creates_environment_and_installs_wheel(
 
     result = _install_agent(downloaded_components)
 
-    assert created_environment == Path(
-        "/opt/ohana-agent/venv"
-    )
+    assert created_environment == Path("/opt/ohana-agent/venv")
     assert installed_wheel == wheel_path
     assert secured_installations == [
         (Path("/opt/ohana-agent"), "root", "root"),
     ]
     assert result == expected_component
+
 
 def test_install_fails_when_systemd_reload_fails(
     monkeypatch,
@@ -704,13 +681,12 @@ def test_install_fails_when_systemd_reload_fails(
     assert "Commande systemd impossible" in output
     assert "daemon-reload refusé" in output
 
+
 def test_install_agent_fails_when_agent_was_not_downloaded() -> None:
     manifest = _build_manifest()
 
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     downloaded_components = (
@@ -728,15 +704,15 @@ def test_install_agent_fails_when_agent_was_not_downloaded() -> None:
     ):
         _install_agent(downloaded_components)
 
+
 def _build_installed_vision() -> InstalledPythonComponent:
     return InstalledPythonComponent(
         name="Ohana-Vision",
         version="1.0.0",
         environment_path=Path("/opt/ohana-vision/venv"),
-        executable_path=Path(
-            "/opt/ohana-vision/venv/bin/ohana-vision"
-        ),
+        executable_path=Path("/opt/ohana-vision/venv/bin/ohana-vision"),
     )
+
 
 def test_install_fails_when_vision_installation_fails(
     monkeypatch,
@@ -792,6 +768,7 @@ def test_install_fails_when_vision_installation_fails(
     assert "Installation impossible" in output
     assert "échec de Vision" in output
 
+
 def test_install_vision_creates_environment_and_installs_wheel(
     tmp_path: Path,
     monkeypatch,
@@ -799,9 +776,7 @@ def test_install_vision_creates_environment_and_installs_wheel(
     manifest = _build_manifest()
 
     vision = next(
-        component
-        for component in manifest.components
-        if component.identifier == "vision"
+        component for component in manifest.components if component.identifier == "vision"
     )
 
     wheel_path = tmp_path / vision.package.filename
@@ -832,9 +807,7 @@ def test_install_vision_creates_environment_and_installs_wheel(
         nonlocal installed_wheel
         installed_wheel = package_path
 
-        assert environment_path == Path(
-            "/opt/ohana-vision/venv"
-        )
+        assert environment_path == Path("/opt/ohana-vision/venv")
 
     def fake_verify_component_command(
         **kwargs: object,
@@ -859,9 +832,7 @@ def test_install_vision_creates_environment_and_installs_wheel(
     secured_installations: list[tuple[Path, str, str]] = []
     monkeypatch.setattr(
         "ohana_installer.commands.install.secure_installation_tree",
-        lambda path, *, owner, group: secured_installations.append(
-            (Path(path), owner, group)
-        ),
+        lambda path, *, owner, group: secured_installations.append((Path(path), owner, group)),
     )
     monkeypatch.setattr(
         "ohana_installer.commands.install._generate_services",
@@ -880,9 +851,7 @@ def test_install_vision_creates_environment_and_installs_wheel(
 
     result = _install_vision(downloaded_components)
 
-    assert created_environment == Path(
-        "/opt/ohana-vision/venv"
-    )
+    assert created_environment == Path("/opt/ohana-vision/venv")
     assert installed_wheel == wheel_path
     assert verification_arguments == {
         "environment_path": Path("/opt/ohana-vision/venv"),
@@ -895,14 +864,11 @@ def test_install_vision_creates_environment_and_installs_wheel(
     ]
     assert result == _build_installed_vision()
 
+
 def test_install_vision_fails_when_vision_was_not_downloaded() -> None:
     manifest = _build_manifest()
 
-    agent = next(
-        component
-        for component in manifest.components
-        if component.identifier == "agent"
-    )
+    agent = next(component for component in manifest.components if component.identifier == "agent")
 
     downloaded_components = (
         DownloadedComponent(
@@ -918,6 +884,7 @@ def test_install_vision_fails_when_vision_was_not_downloaded() -> None:
         match="vision est absent",
     ):
         _install_vision(downloaded_components)
+
 
 def test_install_fails_when_systemd_installation_fails(
     monkeypatch,
@@ -964,9 +931,7 @@ def test_install_fails_when_systemd_installation_fails(
         generated_services: tuple[GeneratedSystemdService, ...],
     ) -> tuple[InstalledSystemdService, ...]:
         del generated_services
-        raise SystemdInstallationError(
-            "permission refusée"
-        )
+        raise SystemdInstallationError("permission refusée")
 
     monkeypatch.setattr(
         "ohana_installer.commands.install._install_services",
@@ -979,6 +944,7 @@ def test_install_fails_when_systemd_installation_fails(
 
     assert "Installation systemd impossible" in output
     assert "permission refusée" in output
+
 
 def test_install_fails_when_systemd_enable_fails(
     monkeypatch,
@@ -1033,9 +999,7 @@ def test_install_fails_when_systemd_enable_fails(
         installed_services: tuple[InstalledSystemdService, ...],
     ) -> None:
         del installed_services
-        raise SystemdCommandError(
-            "activation refusée"
-        )
+        raise SystemdCommandError("activation refusée")
 
     monkeypatch.setattr(
         "ohana_installer.commands.install._enable_services",
@@ -1048,6 +1012,7 @@ def test_install_fails_when_systemd_enable_fails(
 
     assert "Commande systemd impossible" in output
     assert "activation refusée" in output
+
 
 def test_install_fails_when_systemd_start_fails(
     monkeypatch,
@@ -1116,6 +1081,7 @@ def test_install_fails_when_systemd_start_fails(
     assert "Démarrage des services systemd" in output
     assert "Commande systemd impossible" in output
     assert "démarrage refusé" in output
+
 
 def test_install_fails_when_service_is_not_active(
     monkeypatch,

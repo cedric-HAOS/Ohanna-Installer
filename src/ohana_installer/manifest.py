@@ -14,6 +14,7 @@ SUPPORTED_SCHEMA_VERSION = 1
 class ManifestError(ValueError):
     """Erreur rencontrée lors du chargement ou de la validation du manifeste."""
 
+
 @dataclass(frozen=True)
 class ComponentService:
     """Contrat systemd officiel d'un composant."""
@@ -25,6 +26,7 @@ class ComponentService:
     working_directory: Path
     executable: Path
     arguments: tuple[str, ...]
+
 
 @dataclass(frozen=True)
 class ConfigurationFile:
@@ -99,9 +101,7 @@ def load_manifest(path: Path | str) -> PlatformManifest:
     try:
         raw_content = manifest_path.read_text(encoding="utf-8")
     except OSError as error:
-        raise ManifestError(
-            f"Impossible de lire le manifeste {manifest_path}: {error}"
-        ) from error
+        raise ManifestError(f"Impossible de lire le manifeste {manifest_path}: {error}") from error
 
     try:
         raw_manifest = yaml.safe_load(raw_content)
@@ -147,9 +147,7 @@ def parse_manifest(raw_manifest: Any) -> PlatformManifest:
 
     runtime = _parse_runtime(root.get("runtime"))
     components = _parse_components(root.get("components"))
-    compatibility = _parse_compatibility(
-        root.get("compatibility")
-    )
+    compatibility = _parse_compatibility(root.get("compatibility"))
 
     return PlatformManifest(
         schema_version=schema_version,
@@ -204,37 +202,27 @@ def _parse_components(
     )
 
     if not components:
-        raise ManifestError(
-            "La section components ne peut pas être vide."
-        )
+        raise ManifestError("La section components ne peut pas être vide.")
 
     parsed_components = tuple(
         _parse_component(identifier, raw_component)
         for identifier, raw_component in components.items()
     )
 
-    identifiers = [
-        component.identifier
-        for component in parsed_components
-    ]
+    identifiers = [component.identifier for component in parsed_components]
 
     if len(identifiers) != len(set(identifiers)):
-        raise ManifestError(
-            "Le manifeste contient plusieurs composants "
-            "avec le même identifiant."
-        )
+        raise ManifestError("Le manifeste contient plusieurs composants avec le même identifiant.")
 
     return parsed_components
-    
+
+
 def _parse_component(
     identifier: Any,
     raw_component: Any,
 ) -> ComponentManifest:
     if not isinstance(identifier, str) or not identifier.strip():
-        raise ManifestError(
-            "Chaque composant doit posséder "
-            "un identifiant textuel non vide."
-        )
+        raise ManifestError("Chaque composant doit posséder un identifiant textuel non vide.")
 
     normalized_identifier = identifier.strip()
     component_path = f"components.{normalized_identifier}"
@@ -255,10 +243,7 @@ def _parse_component(
     )
 
     if package_type != "wheel":
-        raise ManifestError(
-            f"{component_path}.package.type "
-            "doit être égal à 'wheel'."
-        )
+        raise ManifestError(f"{component_path}.package.type doit être égal à 'wheel'.")
 
     package = ComponentPackage(
         type=package_type,
@@ -270,10 +255,7 @@ def _parse_component(
     )
 
     if not package.filename.endswith(".whl"):
-        raise ManifestError(
-            f"{component_path}.package.filename "
-            "doit désigner un fichier .whl."
-        )
+        raise ManifestError(f"{component_path}.package.filename doit désigner un fichier .whl.")
 
     repository = _require_non_empty_string(
         component,
@@ -283,8 +265,7 @@ def _parse_component(
 
     if repository.count("/") != 1:
         raise ManifestError(
-            f"{component_path}.repository doit respecter "
-            "le format owner/repository."
+            f"{component_path}.repository doit respecter le format owner/repository."
         )
 
     raw_configuration = component.get("configuration")
@@ -337,9 +318,7 @@ def _parse_configuration(
     raw_configuration: Any,
     component_path: str,
 ) -> ComponentConfiguration:
-    configuration_path = (
-        f"{component_path}.configuration"
-    )
+    configuration_path = f"{component_path}.configuration"
 
     configuration = _require_mapping(
         raw_configuration,
@@ -354,27 +333,19 @@ def _parse_configuration(
     directory_path = PurePosixPath(directory_value)
 
     if not directory_path.is_absolute():
-        raise ManifestError(
-            f"{configuration_path}.directory "
-            "doit être un chemin absolu."
-        )
+        raise ManifestError(f"{configuration_path}.directory doit être un chemin absolu.")
 
     directory = Path(directory_value)
 
     raw_files = configuration.get("files")
 
     if not isinstance(raw_files, list) or not raw_files:
-        raise ManifestError(
-            f"{configuration_path}.files "
-            "doit être une liste non vide."
-        )
+        raise ManifestError(f"{configuration_path}.files doit être une liste non vide.")
 
     files: list[ConfigurationFile] = []
 
     for index, raw_file in enumerate(raw_files):
-        file_path = (
-            f"{configuration_path}.files[{index}]"
-        )
+        file_path = f"{configuration_path}.files[{index}]"
         file_data = _require_mapping(
             raw_file,
             file_path,
@@ -395,26 +366,16 @@ def _parse_configuration(
         destination_path = PurePosixPath(destination_value)
 
         if source_path.is_absolute():
-            raise ManifestError(
-                f"{file_path}.source doit être relatif."
-            )
+            raise ManifestError(f"{file_path}.source doit être relatif.")
 
         if ".." in source_path.parts:
-            raise ManifestError(
-                f"{file_path}.source "
-                "ne peut pas contenir '..'."
-            )
+            raise ManifestError(f"{file_path}.source ne peut pas contenir '..'.")
 
         if destination_path.is_absolute():
-            raise ManifestError(
-                f"{file_path}.destination doit être relatif."
-            )
+            raise ManifestError(f"{file_path}.destination doit être relatif.")
 
         if ".." in destination_path.parts:
-            raise ManifestError(
-                f"{file_path}.destination "
-                "ne peut pas contenir '..'."
-            )
+            raise ManifestError(f"{file_path}.destination ne peut pas contenir '..'.")
 
         files.append(
             ConfigurationFile(
@@ -460,9 +421,7 @@ def _require_mapping(
     path: str,
 ) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise ManifestError(
-            f"{path} doit être un objet YAML."
-        )
+        raise ManifestError(f"{path} doit être un objet YAML.")
 
     return value
 
@@ -475,10 +434,7 @@ def _require_non_empty_string(
     value = mapping.get(key)
 
     if not isinstance(value, str) or not value.strip():
-        raise ManifestError(
-            f"{path}.{key} doit être "
-            "une chaîne de caractères non vide."
-        )
+        raise ManifestError(f"{path}.{key} doit être une chaîne de caractères non vide.")
 
     return value.strip()
 
@@ -491,11 +447,10 @@ def _require_integer(
     value = mapping.get(key)
 
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ManifestError(
-            f"{path}.{key} doit être un entier."
-        )
+        raise ManifestError(f"{path}.{key} doit être un entier.")
 
     return value
+
 
 def _parse_service(
     raw_service: Any,
@@ -516,14 +471,10 @@ def _parse_service(
     )
 
     if Path(filename).name != filename:
-        raise ManifestError(
-            f"{service_path}.filename doit être un simple nom de fichier."
-        )
+        raise ManifestError(f"{service_path}.filename doit être un simple nom de fichier.")
 
     if not filename.endswith(".service"):
-        raise ManifestError(
-            f"{service_path}.filename doit se terminer par '.service'."
-        )
+        raise ManifestError(f"{service_path}.filename doit se terminer par '.service'.")
 
     working_directory_value = _require_non_empty_string(
         service,
@@ -536,45 +487,29 @@ def _parse_service(
         service_path,
     )
 
-    working_directory_path = PurePosixPath(
-        working_directory_value
-    )
-    executable_path = PurePosixPath(
-        executable_value
-    )
+    working_directory_path = PurePosixPath(working_directory_value)
+    executable_path = PurePosixPath(executable_value)
 
     if not working_directory_path.is_absolute():
-        raise ManifestError(
-            f"{service_path}.working_directory "
-            "doit être un chemin absolu."
-        )
+        raise ManifestError(f"{service_path}.working_directory doit être un chemin absolu.")
 
     if not executable_path.is_absolute():
-        raise ManifestError(
-            f"{service_path}.executable "
-            "doit être un chemin absolu."
-        )
+        raise ManifestError(f"{service_path}.executable doit être un chemin absolu.")
 
     raw_arguments = service.get("arguments", [])
 
     if not isinstance(raw_arguments, list):
-        raise ManifestError(
-            f"{service_path}.arguments doit être une liste."
-        )
+        raise ManifestError(f"{service_path}.arguments doit être une liste.")
 
     arguments: list[str] = []
 
     for index, argument in enumerate(raw_arguments):
         if not isinstance(argument, str) or not argument:
-            raise ManifestError(
-                f"{service_path}.arguments[{index}] "
-                "doit être une chaîne non vide."
-            )
+            raise ManifestError(f"{service_path}.arguments[{index}] doit être une chaîne non vide.")
 
         if "\n" in argument or "\r" in argument:
             raise ManifestError(
-                f"{service_path}.arguments[{index}] "
-                "ne peut pas contenir de saut de ligne."
+                f"{service_path}.arguments[{index}] ne peut pas contenir de saut de ligne."
             )
 
         arguments.append(argument)

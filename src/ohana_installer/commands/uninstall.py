@@ -73,16 +73,12 @@ def _remove_installation_path(path: Path) -> bool:
         return False
 
     if not path.is_dir():
-        raise UninstallationError(
-            f"Le chemin d'installation {path} n'est pas un répertoire."
-        )
+        raise UninstallationError(f"Le chemin d'installation {path} n'est pas un répertoire.")
 
     try:
         shutil.rmtree(path)
     except OSError as error:
-        raise UninstallationError(
-            f"Impossible de supprimer {path} : {error}"
-        ) from error
+        raise UninstallationError(f"Impossible de supprimer {path} : {error}") from error
 
     return True
 
@@ -97,9 +93,7 @@ def run(args: argparse.Namespace) -> int:
 
     try:
         installed_services = tuple(
-            service_name
-            for service_name in SERVICE_NAMES
-            if _service_is_installed(service_name)
+            service_name for service_name in SERVICE_NAMES if _service_is_installed(service_name)
         )
 
         if installed_services:
@@ -156,11 +150,7 @@ def run(args: argparse.Namespace) -> int:
         return UNINSTALLATION_ERROR
 
     print()
-    print(
-        "Ohana-Agent et Ohana-Vision sont désinstallés."
-    )
-    print(
-        "Les fichiers de configuration ont été conservés."
-    )
+    print("Ohana-Agent et Ohana-Vision sont désinstallés.")
+    print("Les fichiers de configuration ont été conservés.")
 
     return 0

@@ -51,20 +51,14 @@ def _build_downloaded_configuration(
             type="wheel",
             filename="ohana_agent-1.1.0-py3-none-any.whl",
         ),
-        configuration=(
-            configuration
-            if with_component_configuration
-            else None
-        ),
+        configuration=(configuration if with_component_configuration else None),
         service=ComponentService(
             filename="ohana-agent.service",
             description="Ohana Agent",
             user="ohana",
             group="ohana",
             working_directory=Path("/opt/ohana-agent"),
-            executable=Path(
-                "/opt/ohana-agent/venv/bin/ohana-agent"
-            ),
+            executable=Path("/opt/ohana-agent/venv/bin/ohana-agent"),
             arguments=(),
         ),
     )
@@ -97,9 +91,7 @@ def test_install_configuration_file_creates_nested_destination(
     assert installed_file.destination_path == (
         tmp_path / "etc" / "ohana-agent" / "plugins" / "dns.yaml"
     )
-    assert installed_file.destination_path.read_text(
-        encoding="utf-8"
-    ) == "enabled: true\n"
+    assert installed_file.destination_path.read_text(encoding="utf-8") == "enabled: true\n"
 
 
 def test_install_configuration_file_preserves_existing_file(
@@ -109,10 +101,7 @@ def test_install_configuration_file_preserves_existing_file(
     configuration = downloaded_file.component.configuration
     assert configuration is not None
 
-    destination = (
-        configuration.directory
-        / downloaded_file.configuration_file.destination
-    )
+    destination = configuration.directory / downloaded_file.configuration_file.destination
     destination.parent.mkdir(parents=True)
     destination.write_text("local: true\n", encoding="utf-8")
 
@@ -132,10 +121,7 @@ def test_install_configuration_file_rejects_directory_destination(
     configuration = downloaded_file.component.configuration
     assert configuration is not None
 
-    destination = (
-        configuration.directory
-        / downloaded_file.configuration_file.destination
-    )
+    destination = configuration.directory / downloaded_file.configuration_file.destination
     destination.mkdir(parents=True)
 
     with pytest.raises(
@@ -278,10 +264,7 @@ def test_install_configuration_file_removes_new_file_when_securing_fails(
     downloaded_file = _build_downloaded_configuration(tmp_path)
     configuration = downloaded_file.component.configuration
     assert configuration is not None
-    destination = (
-        configuration.directory
-        / downloaded_file.configuration_file.destination
-    )
+    destination = configuration.directory / downloaded_file.configuration_file.destination
 
     def fail_on_file(
         path: Path,
@@ -293,9 +276,7 @@ def test_install_configuration_file_removes_new_file_when_securing_fails(
         del mode
 
         if path == destination:
-            raise ConfigurationInstallationError(
-                "permissions refusées"
-            )
+            raise ConfigurationInstallationError("permissions refusées")
 
     monkeypatch.setattr(
         "ohana_installer.commands.install._secure_configuration_path",
@@ -318,10 +299,7 @@ def test_install_configuration_file_rejects_symbolic_link_destination(
     downloaded_file = _build_downloaded_configuration(tmp_path)
     configuration = downloaded_file.component.configuration
     assert configuration is not None
-    destination = (
-        configuration.directory
-        / downloaded_file.configuration_file.destination
-    )
+    destination = configuration.directory / downloaded_file.configuration_file.destination
     original_is_symlink = Path.is_symlink
 
     def fake_is_symlink(path: Path) -> bool:

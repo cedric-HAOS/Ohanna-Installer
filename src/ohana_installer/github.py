@@ -53,10 +53,7 @@ def build_release_asset_url(
 ) -> str:
     """Construire l'URL GitHub d'un artefact de release."""
 
-    return (
-        f"https://github.com/{repository}/releases/download/"
-        f"{release_tag}/{filename}"
-    )
+    return f"https://github.com/{repository}/releases/download/{release_tag}/{filename}"
 
 
 def download_file(
@@ -89,29 +86,21 @@ def download_file(
             content = response.read()
     except urllib.error.HTTPError as error:
         raise DownloadError(
-            "Le téléchargement a échoué avec "
-            f"le statut HTTP {error.code} : {url}"
+            f"Le téléchargement a échoué avec le statut HTTP {error.code} : {url}"
         ) from error
     except urllib.error.URLError as error:
-        raise DownloadError(
-            f"Le téléchargement a échoué : {error.reason}"
-        ) from error
+        raise DownloadError(f"Le téléchargement a échoué : {error.reason}") from error
     except (TimeoutError, OSError) as error:
-        raise DownloadError(
-            f"Le téléchargement a échoué : {error}"
-        ) from error
+        raise DownloadError(f"Le téléchargement a échoué : {error}") from error
 
     if not content:
-        raise DownloadError(
-            f"Le fichier téléchargé depuis {url} est vide."
-        )
+        raise DownloadError(f"Le fichier téléchargé depuis {url} est vide.")
 
     try:
         destination_path.write_bytes(content)
     except OSError as error:
         raise DownloadError(
-            f"Impossible d'écrire le fichier "
-            f"{destination_path} : {error}"
+            f"Impossible d'écrire le fichier {destination_path} : {error}"
         ) from error
 
     return destination_path
@@ -158,10 +147,7 @@ def download_component_package(
 ) -> DownloadedComponent:
     """Télécharger le package déclaré pour un composant."""
 
-    destination_path = (
-        Path(destination_directory)
-        / component.package.filename
-    )
+    destination_path = Path(destination_directory) / component.package.filename
 
     url = build_release_download_url(component)
 
@@ -211,15 +197,9 @@ def download_component_configuration_files(
     if component.configuration is None:
         return ()
 
-    component_directory = (
-        Path(destination_directory)
-        / "configuration"
-        / component.identifier
-    )
+    component_directory = Path(destination_directory) / "configuration" / component.identifier
 
-    downloaded_files: list[
-        DownloadedConfigurationFile
-    ] = []
+    downloaded_files: list[DownloadedConfigurationFile] = []
 
     for configuration_file in component.configuration.files:
         url = build_release_asset_url(
@@ -228,10 +208,7 @@ def download_component_configuration_files(
             filename=configuration_file.source,
         )
 
-        destination = (
-            component_directory
-            / configuration_file.source
-        )
+        destination = component_directory / configuration_file.source
 
         downloaded_path = download_file(
             url,
@@ -258,9 +235,7 @@ def download_configuration_files(
 ) -> tuple[DownloadedConfigurationFile, ...]:
     """Télécharger les configurations de tous les composants."""
 
-    downloaded_files: list[
-        DownloadedConfigurationFile
-    ] = []
+    downloaded_files: list[DownloadedConfigurationFile] = []
 
     for component in components:
         downloaded_files.extend(

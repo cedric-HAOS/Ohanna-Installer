@@ -225,6 +225,7 @@ def test_verify_component_command_rejects_unexpected_version(
             component_name="Ohana-Agent",
         )
 
+
 def test_secured_file_mode_preserves_executability() -> None:
     from ohana_installer.python_package import _secured_file_mode
 
@@ -249,9 +250,7 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
 
     monkeypatch.setattr(
         "ohana_installer.python_package.shutil.chown",
-        lambda path, *, user, group: owners.append(
-            (Path(path), user, group)
-        ),
+        lambda path, *, user, group: owners.append((Path(path), user, group)),
     )
     monkeypatch.setattr(
         Path,

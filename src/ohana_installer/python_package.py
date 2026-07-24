@@ -41,9 +41,7 @@ def create_virtual_environment(
     target_path = Path(environment_path)
 
     if target_path.exists():
-        raise PackageInstallationError(
-            f"L'environnement Python existe déjà : {target_path}."
-        )
+        raise PackageInstallationError(f"L'environnement Python existe déjà : {target_path}.")
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -57,9 +55,7 @@ def create_virtual_environment(
     _run_command(
         command,
         timeout=timeout,
-        error_message=(
-            f"Impossible de créer l'environnement Python {target_path}"
-        ),
+        error_message=(f"Impossible de créer l'environnement Python {target_path}"),
     )
 
     return target_path
@@ -77,9 +73,7 @@ def install_wheel(
     target_environment = Path(environment_path)
 
     if not package_path.is_file():
-        raise PackageInstallationError(
-            f"Le wheel est introuvable : {package_path}."
-        )
+        raise PackageInstallationError(f"Le wheel est introuvable : {package_path}.")
 
     pip_executable = get_environment_executable(
         target_environment,
@@ -87,9 +81,7 @@ def install_wheel(
     )
 
     if not pip_executable.is_file():
-        raise PackageInstallationError(
-            f"pip est introuvable dans {target_environment}."
-        )
+        raise PackageInstallationError(f"pip est introuvable dans {target_environment}.")
 
     _run_command(
         [
@@ -137,8 +129,7 @@ def verify_component_command(
 
     if expected_version not in output:
         raise PackageInstallationError(
-            f"Version inattendue pour {component_name} : "
-            f"{output or 'aucune sortie'}."
+            f"Version inattendue pour {component_name} : {output or 'aucune sortie'}."
         )
 
     return InstalledPythonComponent(
@@ -152,15 +143,9 @@ def verify_component_command(
 def _secured_file_mode(source_mode: int) -> int:
     """Return a secure mode while preserving executability."""
 
-    executable = bool(
-        source_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    )
+    executable = bool(source_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
 
-    return (
-        INSTALLATION_EXECUTABLE_MODE
-        if executable
-        else INSTALLATION_FILE_MODE
-    )
+    return INSTALLATION_EXECUTABLE_MODE if executable else INSTALLATION_FILE_MODE
 
 
 def secure_installation_tree(
@@ -175,8 +160,7 @@ def secure_installation_tree(
 
     if root_path.is_symlink():
         raise PackageInstallationError(
-            f"Le répertoire d'installation {root_path} "
-            "ne peut pas être un lien symbolique."
+            f"Le répertoire d'installation {root_path} ne peut pas être un lien symbolique."
         )
 
     if not root_path.is_dir():
@@ -203,8 +187,7 @@ def secure_installation_tree(
             mode = _secured_file_mode(source_mode)
         else:
             raise PackageInstallationError(
-                f"Le chemin d'installation {path} n'est ni un fichier "
-                "ni un répertoire régulier."
+                f"Le chemin d'installation {path} n'est ni un fichier ni un répertoire régulier."
             )
 
         try:
@@ -216,8 +199,7 @@ def secure_installation_tree(
             path.chmod(mode)
         except (LookupError, OSError) as error:
             raise PackageInstallationError(
-                f"Impossible de sécuriser {path} "
-                f"({owner}:{group}, {mode:04o}) : {error}"
+                f"Impossible de sécuriser {path} ({owner}:{group}, {mode:04o}) : {error}"
             ) from error
 
 
@@ -251,19 +233,13 @@ def _run_command(
             timeout=timeout,
         )
     except subprocess.TimeoutExpired as error:
-        raise PackageInstallationError(
-            f"{error_message} : délai dépassé."
-        ) from error
+        raise PackageInstallationError(f"{error_message} : délai dépassé.") from error
     except subprocess.CalledProcessError as error:
         details = error.stderr.strip() or error.stdout.strip()
 
         if details:
-            raise PackageInstallationError(
-                f"{error_message} : {details}"
-            ) from error
+            raise PackageInstallationError(f"{error_message} : {details}") from error
 
         raise PackageInstallationError(error_message) from error
     except OSError as error:
-        raise PackageInstallationError(
-            f"{error_message} : {error}"
-        ) from error
+        raise PackageInstallationError(f"{error_message} : {error}") from error

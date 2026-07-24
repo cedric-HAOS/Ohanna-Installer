@@ -77,14 +77,14 @@ def test_enable_systemd_service_runs_expected_command(
         "ohana-agent.service",
     ]
 
+
 def test_enable_systemd_service_rejects_invalid_name() -> None:
     with pytest.raises(
         SystemdCommandError,
         match="Nom de service systemd invalide",
     ):
-        enable_systemd_service(
-            "../ohana-agent.service"
-        )
+        enable_systemd_service("../ohana-agent.service")
+
 
 def test_enable_systemd_service_requires_service_suffix() -> None:
     with pytest.raises(
@@ -92,6 +92,7 @@ def test_enable_systemd_service_requires_service_suffix() -> None:
         match=r"doit se terminer par '\.service'",
     ):
         enable_systemd_service("ohana-agent")
+
 
 def test_enable_systemd_service_handles_command_error(
     monkeypatch,
@@ -117,9 +118,8 @@ def test_enable_systemd_service_handles_command_error(
         SystemdCommandError,
         match="permission denied",
     ):
-        enable_systemd_service(
-            "ohana-agent.service"
-        )
+        enable_systemd_service("ohana-agent.service")
+
 
 def test_enable_systemd_service_handles_timeout(
     monkeypatch,
@@ -144,9 +144,8 @@ def test_enable_systemd_service_handles_timeout(
         SystemdCommandError,
         match="délai autorisé",
     ):
-        enable_systemd_service(
-            "ohana-agent.service"
-        )
+        enable_systemd_service("ohana-agent.service")
+
 
 def _build_generated_service(
     directory: Path,
@@ -193,6 +192,7 @@ def _build_generated_service(
         content=content,
     )
 
+
 def test_start_systemd_services_starts_all_services(
     tmp_path: Path,
     monkeypatch,
@@ -210,9 +210,7 @@ def test_start_systemd_services_starts_all_services(
             user="ohana",
             group="ohana",
             working_directory=Path("/opt/ohana-vision"),
-            executable=Path(
-                "/opt/ohana-vision/venv/bin/ohana-vision"
-            ),
+            executable=Path("/opt/ohana-vision/venv/bin/ohana-vision"),
             arguments=(),
         ),
     )
@@ -220,18 +218,14 @@ def test_start_systemd_services_starts_all_services(
     installed_agent = InstalledSystemdService(
         component=agent,
         source_path=tmp_path / "ohana-agent.service",
-        destination_path=(
-            tmp_path / "systemd" / "ohana-agent.service"
-        ),
+        destination_path=(tmp_path / "systemd" / "ohana-agent.service"),
         created=True,
     )
 
     installed_vision = InstalledSystemdService(
         component=vision,
         source_path=tmp_path / "ohana-vision.service",
-        destination_path=(
-            tmp_path / "systemd" / "ohana-vision.service"
-        ),
+        destination_path=(tmp_path / "systemd" / "ohana-vision.service"),
         created=True,
     )
 
@@ -264,6 +258,7 @@ def test_start_systemd_services_starts_all_services(
         "ohana-vision.service",
     ]
 
+
 def _generate_agent_service(
     tmp_path: Path,
 ) -> GeneratedSystemdService:
@@ -275,6 +270,7 @@ def _generate_agent_service(
         component,
         tmp_path,
     )
+
 
 def test_install_generated_service_copies_unit(
     tmp_path: Path,
@@ -291,17 +287,18 @@ def test_install_generated_service_copies_unit(
         system_directory=system_directory,
     )
 
-    destination = (
-        system_directory
-        / "ohana-agent.service"
-    )
+    destination = system_directory / "ohana-agent.service"
 
     assert result.created is True
     assert result.destination_path == destination
     assert destination.exists()
-    assert destination.read_text(
-        encoding="utf-8",
-    ) == generated_service.content
+    assert (
+        destination.read_text(
+            encoding="utf-8",
+        )
+        == generated_service.content
+    )
+
 
 def test_install_generated_service_accepts_identical_existing_unit(
     tmp_path: Path,
@@ -314,10 +311,7 @@ def test_install_generated_service_accepts_identical_existing_unit(
     )
 
     system_directory.mkdir()
-    destination = (
-        system_directory
-        / "ohana-agent.service"
-    )
+    destination = system_directory / "ohana-agent.service"
     destination.write_text(
         generated_service.content,
         encoding="utf-8",
@@ -332,6 +326,7 @@ def test_install_generated_service_accepts_identical_existing_unit(
     assert result.created is False
     assert result.destination_path == destination
 
+
 def test_install_generated_service_rejects_different_existing_unit(
     tmp_path: Path,
 ) -> None:
@@ -343,10 +338,7 @@ def test_install_generated_service_rejects_different_existing_unit(
     )
 
     system_directory.mkdir()
-    destination = (
-        system_directory
-        / "ohana-agent.service"
-    )
+    destination = system_directory / "ohana-agent.service"
     destination.write_text(
         "custom content\n",
         encoding="utf-8",
@@ -360,6 +352,7 @@ def test_install_generated_service_rejects_different_existing_unit(
             generated_service,
             system_directory=system_directory,
         )
+
 
 def test_install_generated_service_rejects_missing_source(
     tmp_path: Path,
@@ -383,6 +376,7 @@ def test_install_generated_service_rejects_missing_source(
             system_directory=tmp_path / "systemd",
         )
 
+
 def test_install_generated_services_installs_all_units(
     tmp_path: Path,
 ) -> None:
@@ -401,9 +395,7 @@ def test_install_generated_services_installs_all_units(
             user="ohana",
             group="ohana",
             working_directory=Path("/opt/ohana-vision"),
-            executable=Path(
-                "/opt/ohana-vision/venv/bin/ohana-vision"
-            ),
+            executable=Path("/opt/ohana-vision/venv/bin/ohana-vision"),
             arguments=(),
         ),
     )
@@ -419,12 +411,9 @@ def test_install_generated_services_installs_all_units(
     )
 
     assert len(results) == 2
-    assert (
-        system_directory / "ohana-agent.service"
-    ).exists()
-    assert (
-        system_directory / "ohana-vision.service"
-    ).exists()
+    assert (system_directory / "ohana-agent.service").exists()
+    assert (system_directory / "ohana-vision.service").exists()
+
 
 def _build_component(
     *,
@@ -453,9 +442,7 @@ def _build_agent_service() -> ComponentService:
         user="ohana",
         group="ohana",
         working_directory=Path("/opt/ohana-agent"),
-        executable=Path(
-            "/opt/ohana-agent/venv/bin/ohana-agent"
-        ),
+        executable=Path("/opt/ohana-agent/venv/bin/ohana-agent"),
         arguments=(
             "--config",
             "/etc/ohana-agent/shikamaru.yaml",
@@ -464,9 +451,7 @@ def _build_agent_service() -> ComponentService:
 
 
 def test_render_systemd_service() -> None:
-    content = render_systemd_service(
-        _build_agent_service()
-    )
+    content = render_systemd_service(_build_agent_service())
 
     assert "[Unit]" in content
     assert "Description=Ohana Agent" in content
@@ -475,8 +460,7 @@ def test_render_systemd_service() -> None:
     assert "Group=ohana" in content
     assert "WorkingDirectory=/opt/ohana-agent" in content
     assert (
-        "ExecStart=/opt/ohana-agent/venv/bin/ohana-agent "
-        "--config /etc/ohana-agent/shikamaru.yaml"
+        "ExecStart=/opt/ohana-agent/venv/bin/ohana-agent --config /etc/ohana-agent/shikamaru.yaml"
     ) in content
     assert "Restart=on-failure" in content
     assert "NoNewPrivileges=true" in content
@@ -500,9 +484,7 @@ def test_generate_component_service_writes_file(
 
     assert result.path == expected_path
     assert expected_path.exists()
-    assert expected_path.read_text(
-        encoding="utf-8"
-    ) == result.content
+    assert expected_path.read_text(encoding="utf-8") == result.content
 
 
 def test_generate_component_service_rejects_missing_service(
@@ -531,9 +513,7 @@ def test_generate_systemd_services_generates_declared_services(
         user="ohana",
         group="ohana",
         working_directory=Path("/opt/ohana-vision"),
-        executable=Path(
-            "/opt/ohana-vision/venv/bin/ohana-vision"
-        ),
+        executable=Path("/opt/ohana-vision/venv/bin/ohana-vision"),
         arguments=(),
     )
 
@@ -552,12 +532,8 @@ def test_generate_systemd_services_generates_declared_services(
     )
 
     assert len(results) == 2
-    assert (
-        tmp_path / "ohana-agent.service"
-    ).exists()
-    assert (
-        tmp_path / "ohana-vision.service"
-    ).exists()
+    assert (tmp_path / "ohana-agent.service").exists()
+    assert (tmp_path / "ohana-vision.service").exists()
 
 
 def test_generate_systemd_services_ignores_component_without_service(
@@ -579,6 +555,7 @@ def test_generate_systemd_services_ignores_component_without_service(
 
     assert len(results) == 1
     assert results[0].component.identifier == "agent"
+
 
 def test_reload_systemd_daemon_runs_expected_command(
     monkeypatch,
@@ -620,6 +597,7 @@ def test_reload_systemd_daemon_runs_expected_command(
         "daemon-reload",
     ]
 
+
 def test_reload_systemd_daemon_handles_command_error(
     monkeypatch,
 ) -> None:
@@ -645,7 +623,8 @@ def test_reload_systemd_daemon_handles_command_error(
         match="access denied",
     ):
         reload_systemd_daemon()
-    
+
+
 def test_reload_systemd_daemon_handles_timeout(
     monkeypatch,
 ) -> None:
@@ -671,6 +650,7 @@ def test_reload_systemd_daemon_handles_timeout(
     ):
         reload_systemd_daemon()
 
+
 def test_reload_systemd_daemon_handles_os_error(
     monkeypatch,
 ) -> None:
@@ -693,6 +673,7 @@ def test_reload_systemd_daemon_handles_os_error(
         match="systemctl introuvable",
     ):
         reload_systemd_daemon()
+
 
 def test_start_systemd_service_runs_expected_command(
     monkeypatch,
@@ -735,6 +716,7 @@ def test_start_systemd_service_runs_expected_command(
         "ohana-agent.service",
     ]
 
+
 def test_start_systemd_service_rejects_invalid_name() -> None:
     with pytest.raises(
         SystemdCommandError,
@@ -742,12 +724,14 @@ def test_start_systemd_service_rejects_invalid_name() -> None:
     ):
         start_systemd_service("../ohana-agent.service")
 
+
 def test_start_systemd_service_requires_service_suffix() -> None:
     with pytest.raises(
         SystemdCommandError,
         match=r"doit se terminer par '\.service'",
     ):
         start_systemd_service("ohana-agent")
+
 
 def test_start_systemd_service_handles_command_error(
     monkeypatch,
@@ -775,6 +759,7 @@ def test_start_systemd_service_handles_command_error(
     ):
         start_systemd_service("ohana-agent.service")
 
+
 def test_start_systemd_service_handles_timeout(
     monkeypatch,
 ) -> None:
@@ -800,6 +785,7 @@ def test_start_systemd_service_handles_timeout(
     ):
         start_systemd_service("ohana-agent.service")
 
+
 def test_start_systemd_service_handles_os_error(
     monkeypatch,
 ) -> None:
@@ -822,6 +808,7 @@ def test_start_systemd_service_handles_os_error(
         match="systemctl introuvable",
     ):
         start_systemd_service("ohana-agent.service")
+
 
 def test_get_systemd_service_status_returns_active(
     monkeypatch,
@@ -856,9 +843,7 @@ def test_get_systemd_service_status_returns_active(
         fake_run,
     )
 
-    result = get_systemd_service_status(
-        "ohana-agent.service"
-    )
+    result = get_systemd_service_status("ohana-agent.service")
 
     assert received_command == [
         "systemctl",
@@ -893,9 +878,7 @@ def test_get_systemd_service_status_returns_inactive(
         fake_run,
     )
 
-    result = get_systemd_service_status(
-        "ohana-agent.service"
-    )
+    result = get_systemd_service_status("ohana-agent.service")
 
     assert result.active is False
     assert result.status == "inactive"
@@ -922,9 +905,7 @@ def test_get_systemd_service_status_returns_failed(
         fake_run,
     )
 
-    result = get_systemd_service_status(
-        "ohana-agent.service"
-    )
+    result = get_systemd_service_status("ohana-agent.service")
 
     assert result.active is False
     assert result.status == "failed"
@@ -935,9 +916,7 @@ def test_get_systemd_service_status_rejects_invalid_name() -> None:
         SystemdCommandError,
         match="Nom de service systemd invalide",
     ):
-        get_systemd_service_status(
-            "../ohana-agent.service"
-        )
+        get_systemd_service_status("../ohana-agent.service")
 
 
 def test_get_systemd_service_status_requires_service_suffix() -> None:
@@ -971,9 +950,7 @@ def test_get_systemd_service_status_handles_timeout(
         SystemdCommandError,
         match="délai autorisé",
     ):
-        get_systemd_service_status(
-            "ohana-agent.service"
-        )
+        get_systemd_service_status("ohana-agent.service")
 
 
 def test_get_systemd_service_status_handles_os_error(
@@ -997,9 +974,7 @@ def test_get_systemd_service_status_handles_os_error(
         SystemdCommandError,
         match="systemctl introuvable",
     ):
-        get_systemd_service_status(
-            "ohana-agent.service"
-        )
+        get_systemd_service_status("ohana-agent.service")
 
 
 def test_get_systemd_services_status_checks_all_services(
@@ -1018,9 +993,7 @@ def test_get_systemd_services_status_checks_all_services(
             user="ohana",
             group="ohana",
             working_directory=Path("/opt/ohana-vision"),
-            executable=Path(
-                "/opt/ohana-vision/venv/bin/ohana-vision"
-            ),
+            executable=Path("/opt/ohana-vision/venv/bin/ohana-vision"),
             arguments=(),
         ),
     )
@@ -1029,17 +1002,13 @@ def test_get_systemd_services_status_checks_all_services(
         InstalledSystemdService(
             component=agent,
             source_path=tmp_path / "ohana-agent.service",
-            destination_path=(
-                tmp_path / "systemd" / "ohana-agent.service"
-            ),
+            destination_path=(tmp_path / "systemd" / "ohana-agent.service"),
             created=True,
         ),
         InstalledSystemdService(
             component=vision,
             source_path=tmp_path / "ohana-vision.service",
-            destination_path=(
-                tmp_path / "systemd" / "ohana-vision.service"
-            ),
+            destination_path=(tmp_path / "systemd" / "ohana-vision.service"),
             created=True,
         ),
     )
@@ -1075,6 +1044,7 @@ def test_get_systemd_services_status_checks_all_services(
     ]
     assert all(result.active for result in results)
 
+
 def test_install_generated_service_refuses_different_existing_unit(
     tmp_path: Path,
 ) -> None:
@@ -1094,6 +1064,7 @@ def test_install_generated_service_refuses_different_existing_unit(
             system_directory=system_directory,
         )
 
+
 def test_install_generated_service_replaces_different_existing_unit(
     tmp_path: Path,
 ) -> None:
@@ -1110,11 +1081,15 @@ def test_install_generated_service_replaces_different_existing_unit(
         replace=True,
     )
 
-    assert destination.read_text(
-        encoding="utf-8",
-    ) == generated_service.content
+    assert (
+        destination.read_text(
+            encoding="utf-8",
+        )
+        == generated_service.content
+    )
     assert result.created is False
     assert result.updated is True
+
 
 def test_stop_systemd_service_runs_expected_command(
     monkeypatch,
@@ -1151,6 +1126,7 @@ def test_stop_systemd_service_runs_expected_command(
         "stop",
         "ohana-agent.service",
     ]
+
 
 def test_disable_systemd_service_runs_expected_command(
     monkeypatch,
@@ -1193,6 +1169,7 @@ def test_disable_systemd_service_runs_expected_command(
         "ohana-agent.service",
     ]
 
+
 def test_remove_systemd_service_removes_existing_unit(
     tmp_path: Path,
 ) -> None:
@@ -1210,6 +1187,7 @@ def test_remove_systemd_service_removes_existing_unit(
     assert removed is True
     assert service_path.exists() is False
 
+
 def test_remove_systemd_service_accepts_missing_unit(
     tmp_path: Path,
 ) -> None:
@@ -1219,6 +1197,7 @@ def test_remove_systemd_service_accepts_missing_unit(
     )
 
     assert removed is False
+
 
 def test_remove_systemd_service_rejects_invalid_name(
     tmp_path: Path,
