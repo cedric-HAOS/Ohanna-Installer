@@ -44,7 +44,7 @@ class ComponentConfiguration:
 
 @dataclass(frozen=True)
 class ComponentPackage:
-    """Package Python distribué pour un composant Ohanna."""
+    """Package Python distribué pour un composant Ohana."""
 
     type: str
     filename: str
@@ -81,7 +81,7 @@ class CompatibilityManifest:
 
 @dataclass(frozen=True)
 class PlatformManifest:
-    """Manifeste validé d'une release Ohanna-Platform."""
+    """Manifeste validé d'une release Ohana-Platform."""
 
     schema_version: int
     platform_name: str

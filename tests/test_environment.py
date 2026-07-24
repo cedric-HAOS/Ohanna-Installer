@@ -6,7 +6,7 @@ import sys
 import urllib.error
 from unittest.mock import MagicMock
 
-from ohanna_installer.environment import (
+from ohana_installer.environment import (
     check_administrator,
     check_github_connectivity,
     check_linux,
@@ -38,7 +38,7 @@ def test_check_linux_fails_on_unsupported_system(monkeypatch) -> None:
 
 def test_check_systemd_succeeds_when_systemctl_exists(monkeypatch) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.environment.shutil.which",
+        "ohana_installer.environment.shutil.which",
         lambda command: "/usr/bin/systemctl" if command == "systemctl" else None,
     )
 
@@ -50,7 +50,7 @@ def test_check_systemd_succeeds_when_systemctl_exists(monkeypatch) -> None:
 
 def test_check_systemd_fails_when_systemctl_is_missing(monkeypatch) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.environment.shutil.which",
+        "ohana_installer.environment.shutil.which",
         lambda command: None,
     )
 
@@ -90,7 +90,7 @@ def test_check_pip_succeeds() -> None:
 
 def test_check_administrator_succeeds_for_root(monkeypatch) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.environment.os.geteuid",
+        "ohana_installer.environment.os.geteuid",
         lambda: 0,
         raising=False,
     )
@@ -102,7 +102,7 @@ def test_check_administrator_succeeds_for_root(monkeypatch) -> None:
 
 def test_check_administrator_fails_for_standard_user(monkeypatch) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.environment.os.geteuid",
+        "ohana_installer.environment.os.geteuid",
         lambda: 1000,
         raising=False,
     )
@@ -120,7 +120,7 @@ def test_check_github_connectivity_succeeds(monkeypatch) -> None:
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.environment.urllib.request.urlopen",
+        "ohana_installer.environment.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -134,7 +134,7 @@ def test_check_github_connectivity_fails(monkeypatch) -> None:
         raise urllib.error.URLError("connection refused")
 
     monkeypatch.setattr(
-        "ohanna_installer.environment.urllib.request.urlopen",
+        "ohana_installer.environment.urllib.request.urlopen",
         raise_url_error,
     )
 
@@ -146,27 +146,27 @@ def test_check_github_connectivity_fails(monkeypatch) -> None:
 
 def test_run_environment_checks_returns_all_checks(monkeypatch) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_linux",
+        "ohana_installer.environment.check_linux",
         lambda: MagicMock(success=True),
     )
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_systemd",
+        "ohana_installer.environment.check_systemd",
         lambda: MagicMock(success=True),
     )
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_python_version",
+        "ohana_installer.environment.check_python_version",
         lambda: MagicMock(success=True),
     )
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_pip",
+        "ohana_installer.environment.check_pip",
         lambda: MagicMock(success=True),
     )
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_administrator",
+        "ohana_installer.environment.check_administrator",
         lambda: MagicMock(success=True),
     )
     monkeypatch.setattr(
-        "ohanna_installer.environment.check_github_connectivity",
+        "ohana_installer.environment.check_github_connectivity",
         lambda: MagicMock(success=True),
     )
 

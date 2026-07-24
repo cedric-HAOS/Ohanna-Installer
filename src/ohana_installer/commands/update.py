@@ -6,7 +6,7 @@ import argparse
 import tempfile
 from pathlib import Path
 
-from ohanna_installer.commands.install import (
+from ohana_installer.commands.install import (
     CONFIGURATION_FILE_MODE,
     CONFIGURATION_OWNER,
     ConfigurationInstallationError,
@@ -25,14 +25,14 @@ from ohanna_installer.commands.install import (
     _reload_systemd,
     _start_services,
 )
-from ohanna_installer.environment import run_environment_checks
-from ohanna_installer.github import DownloadError
-from ohanna_installer.manifest import ManifestError
-from ohanna_installer.python_package import (
+from ohana_installer.environment import run_environment_checks
+from ohana_installer.github import DownloadError
+from ohana_installer.manifest import ManifestError
+from ohana_installer.python_package import (
     PackageInstallationError,
 )
-from ohanna_installer.system_account import SystemAccountError
-from ohanna_installer.systemd import (
+from ohana_installer.system_account import SystemAccountError
+from ohana_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
     SystemdCommandError,
@@ -50,8 +50,8 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
 
     parser = subparsers.add_parser(
         "update",
-        help="Mettre à jour les composants officiels Ohanna.",
-        description="Mettre à jour les composants officiels Ohanna.",
+        help="Mettre à jour les composants officiels Ohana.",
+        description="Mettre à jour les composants officiels Ohana.",
     )
     parser.add_argument(
         "--yes",
@@ -100,13 +100,13 @@ def run(args: argparse.Namespace) -> int:
         print("L'environnement ne permet pas de poursuivre la mise à jour.")
         return UPDATE_ERROR
 
-    print("L'environnement est compatible avec Ohanna-Installer.")
+    print("L'environnement est compatible avec Ohana-Installer.")
     print()
     print("Téléchargement du manifeste officiel...")
 
     try:
         with tempfile.TemporaryDirectory(
-            prefix="ohanna-installer-update-",
+            prefix="ohana-installer-update-",
         ) as temporary_directory:
             temporary_path = Path(temporary_directory)
 
@@ -210,7 +210,7 @@ def run(args: argparse.Namespace) -> int:
                 print(f"✓ {generated_service.path.name} arrêté.")
 
             print()
-            print("Mise à jour d'Ohanna-Agent...")
+            print("Mise à jour d'Ohana-Agent...")
 
             installed_agent = _install_agent(downloaded_components, replace=True)
 
@@ -220,7 +220,7 @@ def run(args: argparse.Namespace) -> int:
             )
 
             print()
-            print("Mise à jour d'Ohanna-Vision...")
+            print("Mise à jour d'Ohana-Vision...")
 
             installed_vision = _install_vision(
                 downloaded_components,
@@ -325,7 +325,7 @@ def run(args: argparse.Namespace) -> int:
 
     print()
     print(
-        "Ohanna-Agent et Ohanna-Vision sont mis à jour, "
+        "Ohana-Agent et Ohana-Vision sont mis à jour, "
         "redémarrés et vérifiés."
     )
 

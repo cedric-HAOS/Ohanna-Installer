@@ -1,4 +1,4 @@
-"""Installation des composants Python Ohanna."""
+"""Installation des composants Python Ohana."""
 
 from __future__ import annotations
 

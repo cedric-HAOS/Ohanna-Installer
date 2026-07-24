@@ -8,23 +8,23 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
 
 # [1.0.0] - À venir
 
-Première version officielle d'**Ohanna-Installer**.
+Première version officielle d'**Ohana-Installer**.
 
 ## Ajouté
 
 ### Projet
 
-* Création du dépôt Ohanna-Installer.
+* Création du dépôt Ohana-Installer.
 * Mise en place de l'architecture du projet.
 * Packaging Python.
-* Commande CLI `ohanna`.
+* Commande CLI `ohana`.
 
 ### Installation
 
 * Vérification de l'environnement.
 * Téléchargement des releases officielles.
-* Installation d'Ohanna-Agent.
-* Installation d'Ohanna-Vision.
+* Installation d'Ohana-Agent.
+* Installation d'Ohana-Vision.
 * Génération des fichiers de configuration.
 * Installation des services système.
 * Validation automatique de l'installation.

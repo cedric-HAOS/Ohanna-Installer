@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ComponentManifest,
     ComponentPackage,
     ComponentService,
 )
-from ohanna_installer.systemd import (
+from ohana_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
     SystemdCommandError,
@@ -65,16 +65,16 @@ def test_enable_systemd_service_runs_expected_command(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
-    enable_systemd_service("ohanna-agent.service")
+    enable_systemd_service("ohana-agent.service")
 
     assert received_command == [
         "systemctl",
         "enable",
-        "ohanna-agent.service",
+        "ohana-agent.service",
     ]
 
 def test_enable_systemd_service_rejects_invalid_name() -> None:
@@ -83,7 +83,7 @@ def test_enable_systemd_service_rejects_invalid_name() -> None:
         match="Nom de service systemd invalide",
     ):
         enable_systemd_service(
-            "../ohanna-agent.service"
+            "../ohana-agent.service"
         )
 
 def test_enable_systemd_service_requires_service_suffix() -> None:
@@ -91,7 +91,7 @@ def test_enable_systemd_service_requires_service_suffix() -> None:
         SystemdCommandError,
         match=r"doit se terminer par '\.service'",
     ):
-        enable_systemd_service("ohanna-agent")
+        enable_systemd_service("ohana-agent")
 
 def test_enable_systemd_service_handles_command_error(
     monkeypatch,
@@ -109,7 +109,7 @@ def test_enable_systemd_service_handles_command_error(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_command_error,
     )
 
@@ -118,7 +118,7 @@ def test_enable_systemd_service_handles_command_error(
         match="permission denied",
     ):
         enable_systemd_service(
-            "ohanna-agent.service"
+            "ohana-agent.service"
         )
 
 def test_enable_systemd_service_handles_timeout(
@@ -136,7 +136,7 @@ def test_enable_systemd_service_handles_timeout(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_timeout,
     )
 
@@ -145,7 +145,7 @@ def test_enable_systemd_service_handles_timeout(
         match="délai autorisé",
     ):
         enable_systemd_service(
-            "ohanna-agent.service"
+            "ohana-agent.service"
         )
 
 def _build_generated_service(
@@ -155,27 +155,27 @@ def _build_generated_service(
 
     component = ComponentManifest(
         identifier="agent",
-        name="Ohanna-Agent",
-        repository="cedric-HAOS/Ohanna-Agent",
+        name="Ohana-Agent",
+        repository="cedric-HAOS/Ohana-Agent",
         version="1.0.0",
         release_tag="v1.0.0",
         package=ComponentPackage(
             type="wheel",
-            filename="ohanna_agent-1.0.0-py3-none-any.whl",
+            filename="ohana_agent-1.0.0-py3-none-any.whl",
         ),
         service=ComponentService(
-            filename="ohanna-agent.service",
-            description="Ohanna Agent",
-            executable=Path("/opt/ohanna-agent/venv/bin/ohanna-agent"),
+            filename="ohana-agent.service",
+            description="Ohana Agent",
+            executable=Path("/opt/ohana-agent/venv/bin/ohana-agent"),
             arguments=(),
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-agent"),
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-agent"),
         ),
     )
 
-    content = "[Unit]\nDescription=Ohanna Agent\n"
-    path = directory / "generated" / "ohanna-agent.service"
+    content = "[Unit]\nDescription=Ohana Agent\n"
+    path = directory / "generated" / "ohana-agent.service"
 
     path.parent.mkdir(
         parents=True,
@@ -203,15 +203,15 @@ def test_start_systemd_services_starts_all_services(
 
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
+        name="Ohana-Vision",
         service=ComponentService(
-            filename="ohanna-vision.service",
-            description="Ohanna Vision",
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-vision"),
+            filename="ohana-vision.service",
+            description="Ohana Vision",
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-vision"),
             executable=Path(
-                "/opt/ohanna-vision/venv/bin/ohanna-vision"
+                "/opt/ohana-vision/venv/bin/ohana-vision"
             ),
             arguments=(),
         ),
@@ -219,18 +219,18 @@ def test_start_systemd_services_starts_all_services(
 
     installed_agent = InstalledSystemdService(
         component=agent,
-        source_path=tmp_path / "ohanna-agent.service",
+        source_path=tmp_path / "ohana-agent.service",
         destination_path=(
-            tmp_path / "systemd" / "ohanna-agent.service"
+            tmp_path / "systemd" / "ohana-agent.service"
         ),
         created=True,
     )
 
     installed_vision = InstalledSystemdService(
         component=vision,
-        source_path=tmp_path / "ohanna-vision.service",
+        source_path=tmp_path / "ohana-vision.service",
         destination_path=(
-            tmp_path / "systemd" / "ohanna-vision.service"
+            tmp_path / "systemd" / "ohana-vision.service"
         ),
         created=True,
     )
@@ -248,7 +248,7 @@ def test_start_systemd_services_starts_all_services(
         started_services.append(service_name)
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.start_systemd_service",
+        "ohana_installer.systemd.start_systemd_service",
         fake_start_systemd_service,
     )
 
@@ -260,8 +260,8 @@ def test_start_systemd_services_starts_all_services(
     )
 
     assert started_services == [
-        "ohanna-agent.service",
-        "ohanna-vision.service",
+        "ohana-agent.service",
+        "ohana-vision.service",
     ]
 
 def _generate_agent_service(
@@ -293,7 +293,7 @@ def test_install_generated_service_copies_unit(
 
     destination = (
         system_directory
-        / "ohanna-agent.service"
+        / "ohana-agent.service"
     )
 
     assert result.created is True
@@ -316,7 +316,7 @@ def test_install_generated_service_accepts_identical_existing_unit(
     system_directory.mkdir()
     destination = (
         system_directory
-        / "ohanna-agent.service"
+        / "ohana-agent.service"
     )
     destination.write_text(
         generated_service.content,
@@ -345,7 +345,7 @@ def test_install_generated_service_rejects_different_existing_unit(
     system_directory.mkdir()
     destination = (
         system_directory
-        / "ohanna-agent.service"
+        / "ohana-agent.service"
     )
     destination.write_text(
         "custom content\n",
@@ -394,15 +394,15 @@ def test_install_generated_services_installs_all_units(
     )
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
+        name="Ohana-Vision",
         service=ComponentService(
-            filename="ohanna-vision.service",
-            description="Ohanna Vision",
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-vision"),
+            filename="ohana-vision.service",
+            description="Ohana Vision",
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-vision"),
             executable=Path(
-                "/opt/ohanna-vision/venv/bin/ohanna-vision"
+                "/opt/ohana-vision/venv/bin/ohana-vision"
             ),
             arguments=(),
         ),
@@ -420,16 +420,16 @@ def test_install_generated_services_installs_all_units(
 
     assert len(results) == 2
     assert (
-        system_directory / "ohanna-agent.service"
+        system_directory / "ohana-agent.service"
     ).exists()
     assert (
-        system_directory / "ohanna-vision.service"
+        system_directory / "ohana-vision.service"
     ).exists()
 
 def _build_component(
     *,
     identifier: str = "agent",
-    name: str = "Ohanna-Agent",
+    name: str = "Ohana-Agent",
     service: ComponentService | None = None,
 ) -> ComponentManifest:
     return ComponentManifest(
@@ -448,17 +448,17 @@ def _build_component(
 
 def _build_agent_service() -> ComponentService:
     return ComponentService(
-        filename="ohanna-agent.service",
-        description="Ohanna Agent",
-        user="ohanna",
-        group="ohanna",
-        working_directory=Path("/opt/ohanna-agent"),
+        filename="ohana-agent.service",
+        description="Ohana Agent",
+        user="ohana",
+        group="ohana",
+        working_directory=Path("/opt/ohana-agent"),
         executable=Path(
-            "/opt/ohanna-agent/venv/bin/ohanna-agent"
+            "/opt/ohana-agent/venv/bin/ohana-agent"
         ),
         arguments=(
             "--config",
-            "/etc/ohanna-agent/shikamaru.yaml",
+            "/etc/ohana-agent/shikamaru.yaml",
         ),
     )
 
@@ -469,14 +469,14 @@ def test_render_systemd_service() -> None:
     )
 
     assert "[Unit]" in content
-    assert "Description=Ohanna Agent" in content
+    assert "Description=Ohana Agent" in content
     assert "After=network-online.target" in content
-    assert "User=ohanna" in content
-    assert "Group=ohanna" in content
-    assert "WorkingDirectory=/opt/ohanna-agent" in content
+    assert "User=ohana" in content
+    assert "Group=ohana" in content
+    assert "WorkingDirectory=/opt/ohana-agent" in content
     assert (
-        "ExecStart=/opt/ohanna-agent/venv/bin/ohanna-agent "
-        "--config /etc/ohanna-agent/shikamaru.yaml"
+        "ExecStart=/opt/ohana-agent/venv/bin/ohana-agent "
+        "--config /etc/ohana-agent/shikamaru.yaml"
     ) in content
     assert "Restart=on-failure" in content
     assert "NoNewPrivileges=true" in content
@@ -496,7 +496,7 @@ def test_generate_component_service_writes_file(
         tmp_path,
     )
 
-    expected_path = tmp_path / "ohanna-agent.service"
+    expected_path = tmp_path / "ohana-agent.service"
 
     assert result.path == expected_path
     assert expected_path.exists()
@@ -526,13 +526,13 @@ def test_generate_systemd_services_generates_declared_services(
     agent_service = _build_agent_service()
 
     vision_service = ComponentService(
-        filename="ohanna-vision.service",
-        description="Ohanna Vision",
-        user="ohanna",
-        group="ohanna",
-        working_directory=Path("/opt/ohanna-vision"),
+        filename="ohana-vision.service",
+        description="Ohana Vision",
+        user="ohana",
+        group="ohana",
+        working_directory=Path("/opt/ohana-vision"),
         executable=Path(
-            "/opt/ohanna-vision/venv/bin/ohanna-vision"
+            "/opt/ohana-vision/venv/bin/ohana-vision"
         ),
         arguments=(),
     )
@@ -542,7 +542,7 @@ def test_generate_systemd_services_generates_declared_services(
     )
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
+        name="Ohana-Vision",
         service=vision_service,
     )
 
@@ -553,10 +553,10 @@ def test_generate_systemd_services_generates_declared_services(
 
     assert len(results) == 2
     assert (
-        tmp_path / "ohanna-agent.service"
+        tmp_path / "ohana-agent.service"
     ).exists()
     assert (
-        tmp_path / "ohanna-vision.service"
+        tmp_path / "ohana-vision.service"
     ).exists()
 
 
@@ -609,7 +609,7 @@ def test_reload_systemd_daemon_runs_expected_command(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
@@ -636,7 +636,7 @@ def test_reload_systemd_daemon_handles_command_error(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_command_error,
     )
 
@@ -661,7 +661,7 @@ def test_reload_systemd_daemon_handles_timeout(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_timeout,
     )
 
@@ -684,7 +684,7 @@ def test_reload_systemd_daemon_handles_os_error(
         raise OSError("systemctl introuvable")
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_os_error,
     )
 
@@ -723,16 +723,16 @@ def test_start_systemd_service_runs_expected_command(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
-    start_systemd_service("ohanna-agent.service")
+    start_systemd_service("ohana-agent.service")
 
     assert received_command == [
         "systemctl",
         "start",
-        "ohanna-agent.service",
+        "ohana-agent.service",
     ]
 
 def test_start_systemd_service_rejects_invalid_name() -> None:
@@ -740,14 +740,14 @@ def test_start_systemd_service_rejects_invalid_name() -> None:
         SystemdCommandError,
         match="Nom de service systemd invalide",
     ):
-        start_systemd_service("../ohanna-agent.service")
+        start_systemd_service("../ohana-agent.service")
 
 def test_start_systemd_service_requires_service_suffix() -> None:
     with pytest.raises(
         SystemdCommandError,
         match=r"doit se terminer par '\.service'",
     ):
-        start_systemd_service("ohanna-agent")
+        start_systemd_service("ohana-agent")
 
 def test_start_systemd_service_handles_command_error(
     monkeypatch,
@@ -765,7 +765,7 @@ def test_start_systemd_service_handles_command_error(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_command_error,
     )
 
@@ -773,7 +773,7 @@ def test_start_systemd_service_handles_command_error(
         SystemdCommandError,
         match="service failed",
     ):
-        start_systemd_service("ohanna-agent.service")
+        start_systemd_service("ohana-agent.service")
 
 def test_start_systemd_service_handles_timeout(
     monkeypatch,
@@ -790,7 +790,7 @@ def test_start_systemd_service_handles_timeout(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_timeout,
     )
 
@@ -798,7 +798,7 @@ def test_start_systemd_service_handles_timeout(
         SystemdCommandError,
         match="délai autorisé",
     ):
-        start_systemd_service("ohanna-agent.service")
+        start_systemd_service("ohana-agent.service")
 
 def test_start_systemd_service_handles_os_error(
     monkeypatch,
@@ -813,7 +813,7 @@ def test_start_systemd_service_handles_os_error(
         raise OSError("systemctl introuvable")
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_os_error,
     )
 
@@ -821,7 +821,7 @@ def test_start_systemd_service_handles_os_error(
         SystemdCommandError,
         match="systemctl introuvable",
     ):
-        start_systemd_service("ohanna-agent.service")
+        start_systemd_service("ohana-agent.service")
 
 def test_get_systemd_service_status_returns_active(
     monkeypatch,
@@ -852,21 +852,21 @@ def test_get_systemd_service_status_returns_active(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
     result = get_systemd_service_status(
-        "ohanna-agent.service"
+        "ohana-agent.service"
     )
 
     assert received_command == [
         "systemctl",
         "is-active",
-        "ohanna-agent.service",
+        "ohana-agent.service",
     ]
     assert result == SystemdServiceStatus(
-        service_name="ohanna-agent.service",
+        service_name="ohana-agent.service",
         active=True,
         status="active",
     )
@@ -889,12 +889,12 @@ def test_get_systemd_service_status_returns_inactive(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
     result = get_systemd_service_status(
-        "ohanna-agent.service"
+        "ohana-agent.service"
     )
 
     assert result.active is False
@@ -918,12 +918,12 @@ def test_get_systemd_service_status_returns_failed(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
     result = get_systemd_service_status(
-        "ohanna-agent.service"
+        "ohana-agent.service"
     )
 
     assert result.active is False
@@ -936,7 +936,7 @@ def test_get_systemd_service_status_rejects_invalid_name() -> None:
         match="Nom de service systemd invalide",
     ):
         get_systemd_service_status(
-            "../ohanna-agent.service"
+            "../ohana-agent.service"
         )
 
 
@@ -945,7 +945,7 @@ def test_get_systemd_service_status_requires_service_suffix() -> None:
         SystemdCommandError,
         match=r"doit se terminer par '\.service'",
     ):
-        get_systemd_service_status("ohanna-agent")
+        get_systemd_service_status("ohana-agent")
 
 
 def test_get_systemd_service_status_handles_timeout(
@@ -963,7 +963,7 @@ def test_get_systemd_service_status_handles_timeout(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_timeout,
     )
 
@@ -972,7 +972,7 @@ def test_get_systemd_service_status_handles_timeout(
         match="délai autorisé",
     ):
         get_systemd_service_status(
-            "ohanna-agent.service"
+            "ohana-agent.service"
         )
 
 
@@ -989,7 +989,7 @@ def test_get_systemd_service_status_handles_os_error(
         raise OSError("systemctl introuvable")
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         raise_os_error,
     )
 
@@ -998,7 +998,7 @@ def test_get_systemd_service_status_handles_os_error(
         match="systemctl introuvable",
     ):
         get_systemd_service_status(
-            "ohanna-agent.service"
+            "ohana-agent.service"
         )
 
 
@@ -1011,15 +1011,15 @@ def test_get_systemd_services_status_checks_all_services(
     )
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
+        name="Ohana-Vision",
         service=ComponentService(
-            filename="ohanna-vision.service",
-            description="Ohanna Vision",
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-vision"),
+            filename="ohana-vision.service",
+            description="Ohana Vision",
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-vision"),
             executable=Path(
-                "/opt/ohanna-vision/venv/bin/ohanna-vision"
+                "/opt/ohana-vision/venv/bin/ohana-vision"
             ),
             arguments=(),
         ),
@@ -1028,17 +1028,17 @@ def test_get_systemd_services_status_checks_all_services(
     installed_services = (
         InstalledSystemdService(
             component=agent,
-            source_path=tmp_path / "ohanna-agent.service",
+            source_path=tmp_path / "ohana-agent.service",
             destination_path=(
-                tmp_path / "systemd" / "ohanna-agent.service"
+                tmp_path / "systemd" / "ohana-agent.service"
             ),
             created=True,
         ),
         InstalledSystemdService(
             component=vision,
-            source_path=tmp_path / "ohanna-vision.service",
+            source_path=tmp_path / "ohana-vision.service",
             destination_path=(
-                tmp_path / "systemd" / "ohanna-vision.service"
+                tmp_path / "systemd" / "ohana-vision.service"
             ),
             created=True,
         ),
@@ -1063,15 +1063,15 @@ def test_get_systemd_services_status_checks_all_services(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.get_systemd_service_status",
+        "ohana_installer.systemd.get_systemd_service_status",
         fake_get_systemd_service_status,
     )
 
     results = get_systemd_services_status(installed_services)
 
     assert checked_services == [
-        "ohanna-agent.service",
-        "ohanna-vision.service",
+        "ohana-agent.service",
+        "ohana-vision.service",
     ]
     assert all(result.active for result in results)
 
@@ -1140,16 +1140,16 @@ def test_stop_systemd_service_runs_expected_command(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
-    stop_systemd_service("ohanna-agent.service")
+    stop_systemd_service("ohana-agent.service")
 
     assert received_command == [
         "systemctl",
         "stop",
-        "ohanna-agent.service",
+        "ohana-agent.service",
     ]
 
 def test_disable_systemd_service_runs_expected_command(
@@ -1181,29 +1181,29 @@ def test_disable_systemd_service_runs_expected_command(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.systemd.subprocess.run",
+        "ohana_installer.systemd.subprocess.run",
         fake_run,
     )
 
-    disable_systemd_service("ohanna-agent.service")
+    disable_systemd_service("ohana-agent.service")
 
     assert received_command == [
         "systemctl",
         "disable",
-        "ohanna-agent.service",
+        "ohana-agent.service",
     ]
 
 def test_remove_systemd_service_removes_existing_unit(
     tmp_path: Path,
 ) -> None:
-    service_path = tmp_path / "ohanna-agent.service"
+    service_path = tmp_path / "ohana-agent.service"
     service_path.write_text(
         "[Unit]\n",
         encoding="utf-8",
     )
 
     removed = remove_systemd_service(
-        "ohanna-agent.service",
+        "ohana-agent.service",
         system_directory=tmp_path,
     )
 
@@ -1214,7 +1214,7 @@ def test_remove_systemd_service_accepts_missing_unit(
     tmp_path: Path,
 ) -> None:
     removed = remove_systemd_service(
-        "ohanna-agent.service",
+        "ohana-agent.service",
         system_directory=tmp_path,
     )
 
@@ -1228,6 +1228,6 @@ def test_remove_systemd_service_rejects_invalid_name(
         match="Nom de service systemd invalide",
     ):
         remove_systemd_service(
-            "../ohanna-agent.service",
+            "../ohana-agent.service",
             system_directory=tmp_path,
         )

@@ -9,7 +9,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ComponentManifest,
     ConfigurationFile,
     ManifestError,
@@ -18,7 +18,7 @@ from ohanna_installer.manifest import (
     load_manifest,
 )
 
-DEFAULT_PLATFORM_REPOSITORY = "cedric-HAOS/Ohanna-Platform"
+DEFAULT_PLATFORM_REPOSITORY = "cedric-HAOS/Ohana-Platform"
 DEFAULT_PLATFORM_RELEASE_TAG = "v1.0.0"
 DEFAULT_MANIFEST_FILENAME = "release-manifest.yaml"
 DEFAULT_TIMEOUT = 15.0
@@ -76,7 +76,7 @@ def download_file(
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Ohanna-Installer",
+            "User-Agent": "Ohana-Installer",
             "Accept": "application/octet-stream",
         },
     )

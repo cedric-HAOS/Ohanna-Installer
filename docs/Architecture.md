@@ -2,7 +2,7 @@
 
 ## Objectif
 
-**Ohanna-Installer** est l'installateur officiel de l'écosystème **Ohanna**.
+**Ohana-Installer** est l'installateur officiel de l'écosystème **Ohana**.
 
 Sa responsabilité est d'installer, de mettre à jour et de désinstaller les composants officiels de la plateforme de manière fiable, reproductible et sécurisée.
 
@@ -13,12 +13,12 @@ Il ne contient aucune logique métier propre aux composants qu'il installe.
 # Position dans l'écosystème
 
 ```text
-                     Ohanna Platform
+                     Ohana Platform
                             │
         ┌───────────────────┼───────────────────┐
         │                   │                   │
         ▼                   ▼                   ▼
- Ohanna-Agent       Ohanna-Vision      Ohanna-Installer
+ Ohana-Agent       Ohana-Vision      Ohana-Installer
     Observe             Visualise          Déploie
 ```
 
@@ -26,10 +26,10 @@ Les responsabilités sont volontairement séparées.
 
 | Projet           | Responsabilité                                                    |
 | ---------------- | ----------------------------------------------------------------- |
-| Ohanna-Platform  | Définit l'architecture, les contrats publics et le Design System. |
-| Ohanna-Agent     | Observe l'infrastructure et produit des observations.             |
-| Ohanna-Vision    | Présente les données collectées.                                  |
-| Ohanna-Installer | Gère le cycle de vie des composants.                              |
+| Ohana-Platform  | Définit l'architecture, les contrats publics et le Design System. |
+| Ohana-Agent     | Observe l'infrastructure et produit des observations.             |
+| Ohana-Vision    | Présente les données collectées.                                  |
+| Ohana-Installer | Gère le cycle de vie des composants.                              |
 
 Cette séparation limite le couplage entre les projets et facilite leur évolution indépendante.
 
@@ -37,7 +37,7 @@ Cette séparation limite le couplage entre les projets et facilite leur évoluti
 
 # Responsabilités
 
-Ohanna-Installer est responsable de :
+Ohana-Installer est responsable de :
 
 * vérifier les prérequis de l'environnement ;
 * télécharger les releases officielles ;
@@ -53,7 +53,7 @@ Il n'est **pas** responsable :
 * de superviser l'infrastructure ;
 * d'exposer une interface utilisateur ;
 * d'exécuter des plugins métier ;
-* de remplacer les fonctionnalités d'Ohanna-Agent ou d'Ohanna-Vision.
+* de remplacer les fonctionnalités d'Ohana-Agent ou d'Ohana-Vision.
 
 ---
 
@@ -63,7 +63,7 @@ Il n'est **pas** responsable :
 
 Chaque composant de l'écosystème possède une responsabilité clairement identifiée.
 
-Ohanna-Installer se limite exclusivement à l'installation et à la maintenance des composants officiels.
+Ohana-Installer se limite exclusivement à l'installation et à la maintenance des composants officiels.
 
 ---
 
@@ -89,7 +89,7 @@ Cette approche garantit des installations reproductibles et identiques entre les
 
 ## Aucun couplage métier
 
-Ohanna-Installer ne connaît pas le fonctionnement interne d'Ohanna-Agent ni d'Ohanna-Vision.
+Ohana-Installer ne connaît pas le fonctionnement interne d'Ohana-Agent ni d'Ohana-Vision.
 
 Il orchestre leur installation sans embarquer leur logique métier.
 
@@ -104,9 +104,9 @@ La première version du projet privilégie une approche volontairement simple.
 Trois commandes constituent le périmètre fonctionnel :
 
 ```text
-ohanna install
-ohanna update
-ohanna uninstall
+ohana install
+ohana update
+ohana uninstall
 ```
 
 Les fonctionnalités d'administration avancées seront introduites dans des versions ultérieures.
@@ -142,10 +142,10 @@ Chaque étape est validée avant de poursuivre afin de garantir une installation
 
 # Gestion des composants
 
-Dans sa première version, Ohanna-Installer gère les composants suivants :
+Dans sa première version, Ohana-Installer gère les composants suivants :
 
-* Ohanna-Agent
-* Ohanna-Vision
+* Ohana-Agent
+* Ohana-Vision
 
 Chaque composant est installé indépendamment.
 
@@ -185,6 +185,6 @@ Ces évolutions devront préserver les principes suivants :
 
 # Conclusion
 
-Ohanna-Installer constitue le point d'entrée officiel de l'écosystème Ohanna.
+Ohana-Installer constitue le point d'entrée officiel de l'écosystème Ohana.
 
 Son rôle est de rendre le déploiement, la mise à jour et la désinstallation des composants aussi simples que possible, tout en laissant à chaque produit la responsabilité de son propre domaine fonctionnel.

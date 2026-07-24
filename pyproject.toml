@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "ohanna-installer"
+name = "ohana-installer"
 version = "1.0.0"
-description = "Installateur officiel de l'écosystème Ohanna"
+description = "Installateur officiel de l'écosystème Ohana"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -14,7 +14,7 @@ authors = [
     { name = "Cédric Harnois" },
 ]
 keywords = [
-    "ohanna",
+    "ohana",
     "installer",
     "deployment",
     "systemd",
@@ -49,12 +49,12 @@ dev = [
 
 
 [project.scripts]
-ohanna = "ohanna_installer.cli:main"
+ohana = "ohana_installer.cli:main"
 
 
 [project.urls]
-Repository = "https://github.com/cedric-HAOS/Ohanna-Installer"
-Issues = "https://github.com/cedric-HAOS/Ohanna-Installer/issues"
+Repository = "https://github.com/cedric-HAOS/Ohana-Installer"
+Issues = "https://github.com/cedric-HAOS/Ohana-Installer/issues"
 
 
 [tool.setuptools]
@@ -77,7 +77,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true
-source = ["ohanna_installer"]
+source = ["ohana_installer"]
 
 
 [tool.coverage.report]
@@ -105,4 +105,4 @@ select = [
 
 
 [tool.ruff.lint.isort]
-known-first-party = ["ohanna_installer"]
+known-first-party = ["ohana_installer"]

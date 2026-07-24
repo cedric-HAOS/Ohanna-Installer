@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.commands.install import (
+from ohana_installer.commands.install import (
     CONFIGURATION_DIRECTORY_MODE,
     CONFIGURATION_FILE_MODE,
     ConfigurationInstallationError,
@@ -12,8 +12,8 @@ from ohanna_installer.commands.install import (
     _install_configurations,
     _secure_configuration_path,
 )
-from ohanna_installer.github import DownloadedConfigurationFile
-from ohanna_installer.manifest import (
+from ohana_installer.github import DownloadedConfigurationFile
+from ohana_installer.manifest import (
     ComponentConfiguration,
     ComponentManifest,
     ComponentPackage,
@@ -33,7 +33,7 @@ def _build_downloaded_configuration(
     source_path.write_text("enabled: true\n", encoding="utf-8")
 
     configuration = ComponentConfiguration(
-        directory=tmp_path / "etc" / "ohanna-agent",
+        directory=tmp_path / "etc" / "ohana-agent",
         files=(
             ConfigurationFile(
                 source="dns.example.yaml",
@@ -43,13 +43,13 @@ def _build_downloaded_configuration(
     )
     component = ComponentManifest(
         identifier="agent",
-        name="Ohanna-Agent",
-        repository="cedric-HAOS/Ohanna-Agent",
+        name="Ohana-Agent",
+        repository="cedric-HAOS/Ohana-Agent",
         version="1.1.0",
         release_tag="v1.1.0",
         package=ComponentPackage(
             type="wheel",
-            filename="ohanna_agent-1.1.0-py3-none-any.whl",
+            filename="ohana_agent-1.1.0-py3-none-any.whl",
         ),
         configuration=(
             configuration
@@ -57,13 +57,13 @@ def _build_downloaded_configuration(
             else None
         ),
         service=ComponentService(
-            filename="ohanna-agent.service",
-            description="Ohanna Agent",
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-agent"),
+            filename="ohana-agent.service",
+            description="Ohana Agent",
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-agent"),
             executable=Path(
-                "/opt/ohanna-agent/venv/bin/ohanna-agent"
+                "/opt/ohana-agent/venv/bin/ohana-agent"
             ),
             arguments=(),
         ),
@@ -81,7 +81,7 @@ def avoid_real_configuration_ownership(monkeypatch) -> None:
     """Éviter les changements de propriétaire pendant les tests Windows."""
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._secure_configuration_path",
+        "ohana_installer.commands.install._secure_configuration_path",
         lambda path, *, group_name, mode: None,
     )
 
@@ -95,7 +95,7 @@ def test_install_configuration_file_creates_nested_destination(
 
     assert installed_file.created is True
     assert installed_file.destination_path == (
-        tmp_path / "etc" / "ohanna-agent" / "plugins" / "dns.yaml"
+        tmp_path / "etc" / "ohana-agent" / "plugins" / "dns.yaml"
     )
     assert installed_file.destination_path.read_text(
         encoding="utf-8"
@@ -207,7 +207,7 @@ def test_install_configuration_file_secures_directories_and_file(
         secured_paths.append((path, group_name, mode))
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._secure_configuration_path",
+        "ohana_installer.commands.install._secure_configuration_path",
         record_permissions,
     )
 
@@ -215,21 +215,21 @@ def test_install_configuration_file_secures_directories_and_file(
     configuration = downloaded_file.component.configuration
     assert configuration is not None
 
-    assert installed_file.group_name == "ohanna"
+    assert installed_file.group_name == "ohana"
     assert secured_paths == [
         (
             configuration.directory,
-            "ohanna",
+            "ohana",
             CONFIGURATION_DIRECTORY_MODE,
         ),
         (
             configuration.directory / "plugins",
-            "ohanna",
+            "ohana",
             CONFIGURATION_DIRECTORY_MODE,
         ),
         (
             installed_file.destination_path,
-            "ohanna",
+            "ohana",
             CONFIGURATION_FILE_MODE,
         ),
     ]
@@ -256,18 +256,18 @@ def test_secure_configuration_path_applies_owner_group_and_mode(
         chmod_calls.append((received_path, mode))
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.shutil.chown",
+        "ohana_installer.commands.install.shutil.chown",
         fake_chown,
     )
     monkeypatch.setattr(Path, "chmod", fake_chmod)
 
     _secure_configuration_path(
         path,
-        group_name="ohanna",
+        group_name="ohana",
         mode=CONFIGURATION_FILE_MODE,
     )
 
-    assert chown_calls == [(path, "root", "ohanna")]
+    assert chown_calls == [(path, "root", "ohana")]
     assert chmod_calls == [(path, CONFIGURATION_FILE_MODE)]
 
 
@@ -298,7 +298,7 @@ def test_install_configuration_file_removes_new_file_when_securing_fails(
             )
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._secure_configuration_path",
+        "ohana_installer.commands.install._secure_configuration_path",
         fail_on_file,
     )
 
@@ -358,16 +358,16 @@ def test_secure_configuration_path_reports_permission_failure(
         raise LookupError("groupe introuvable")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.shutil.chown",
+        "ohana_installer.commands.install.shutil.chown",
         raise_lookup_error,
     )
 
     with pytest.raises(
         ConfigurationInstallationError,
-        match=r"root:ohanna, 0640.*groupe introuvable",
+        match=r"root:ohana, 0640.*groupe introuvable",
     ):
         _secure_configuration_path(
             path,
-            group_name="ohanna",
+            group_name="ohana",
             mode=CONFIGURATION_FILE_MODE,
         )

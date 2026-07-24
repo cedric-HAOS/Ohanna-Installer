@@ -1,27 +1,27 @@
-# Ohanna-Installer
+# Ohana-Installer
 
-> Installateur officiel de l'écosystème Ohanna.
+> Installateur officiel de l'écosystème Ohana.
 
 ## Présentation
 
-**Ohanna-Installer** est le composant chargé d'installer, de mettre à jour et de désinstaller les produits officiels de l'écosystème **Ohanna**.
+**Ohana-Installer** est le composant chargé d'installer, de mettre à jour et de désinstaller les produits officiels de l'écosystème **Ohana**.
 
 Il automatise le déploiement d'une plateforme complète à partir des releases officielles publiées sur GitHub, sans contenir la logique métier des composants qu'il installe.
 
-À terme, un nouvel utilisateur doit pouvoir installer une plateforme Ohanna entièrement fonctionnelle à l'aide d'une seule commande.
+À terme, un nouvel utilisateur doit pouvoir installer une plateforme Ohana entièrement fonctionnelle à l'aide d'une seule commande.
 
 ---
 
 # Écosystème
 
-Ohanna est composé de quatre projets complémentaires :
+Ohana est composé de quatre projets complémentaires :
 
 | Projet               | Rôle                                                            |
 | -------------------- | --------------------------------------------------------------- |
-| **Ohanna-Platform**  | Architecture, documentation, contrats publics et Design System. |
-| **Ohanna-Agent**     | Collecte les observations et surveille l'infrastructure.        |
-| **Ohanna-Vision**    | Visualise les observations, l'état de santé et la topologie.    |
-| **Ohanna-Installer** | Installe, met à jour et désinstalle les composants officiels.   |
+| **Ohana-Platform**  | Architecture, documentation, contrats publics et Design System. |
+| **Ohana-Agent**     | Collecte les observations et surveille l'infrastructure.        |
+| **Ohana-Vision**    | Visualise les observations, l'état de santé et la topologie.    |
+| **Ohana-Installer** | Installe, met à jour et désinstalle les composants officiels.   |
 
 Chaque projet possède une responsabilité clairement définie.
 
@@ -29,7 +29,7 @@ Chaque projet possède une responsabilité clairement définie.
 
 # Objectifs
 
-Ohanna-Installer poursuit quatre objectifs principaux :
+Ohana-Installer poursuit quatre objectifs principaux :
 
 * simplifier le déploiement de la plateforme ;
 * garantir des installations reproductibles ;
@@ -43,9 +43,9 @@ Ohanna-Installer poursuit quatre objectifs principaux :
 La version **1.0.0** fournit trois commandes principales :
 
 ```text
-ohanna install
-ohanna update
-ohanna uninstall
+ohana install
+ohana update
+ohana uninstall
 ```
 
 ## Installation
@@ -53,15 +53,15 @@ ohanna uninstall
 La commande :
 
 ```bash
-ohanna install
+ohana install
 ```
 
 réalise automatiquement :
 
 * la vérification de l'environnement ;
 * le téléchargement des releases officielles ;
-* l'installation d'Ohanna-Agent ;
-* l'installation d'Ohanna-Vision ;
+* l'installation d'Ohana-Agent ;
+* l'installation d'Ohana-Vision ;
 * la génération des fichiers de configuration ;
 * l'installation des services système ;
 * la validation finale de l'installation.
@@ -73,7 +73,7 @@ réalise automatiquement :
 La commande :
 
 ```bash
-ohanna update
+ohana update
 ```
 
 recherche les nouvelles releases officielles et met à jour les composants installés.
@@ -85,7 +85,7 @@ recherche les nouvelles releases officielles et met à jour les composants insta
 La commande :
 
 ```bash
-ohanna uninstall
+ohana uninstall
 ```
 
 supprime proprement les composants installés ainsi que les services associés.
@@ -94,7 +94,7 @@ supprime proprement les composants installés ainsi que les services associés.
 
 # Philosophie
 
-Ohanna-Installer ne contient aucune logique métier.
+Ohana-Installer ne contient aucune logique métier.
 
 Il ne surveille pas l'infrastructure.
 
@@ -102,7 +102,7 @@ Il ne collecte pas d'observations.
 
 Il ne fournit aucune interface utilisateur.
 
-Son unique responsabilité consiste à gérer le cycle de vie des composants officiels de l'écosystème Ohanna.
+Son unique responsabilité consiste à gérer le cycle de vie des composants officiels de l'écosystème Ohana.
 
 Cette séparation garantit un faible couplage entre les différents projets et facilite leur évolution indépendante.
 
@@ -141,8 +141,8 @@ La version 1.0.0 est conçue pour les environnements Linux utilisant **systemd**
 
 Les composants installés sont :
 
-* Ohanna-Agent ;
-* Ohanna-Vision.
+* Ohana-Agent ;
+* Ohana-Vision.
 
 ---
 
@@ -199,4 +199,4 @@ Les principales ressources sont :
 
 Ce projet est distribué sous licence **MIT**.
 
-Cette base reste volontairement concise et centrée sur la mission d'Ohanna-Installer, en cohérence avec les README des autres projets de l'écosystème.
+Cette base reste volontairement concise et centrée sur la mission d'Ohana-Installer, en cohérence avec les README des autres projets de l'écosystème.

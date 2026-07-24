@@ -1,8 +1,8 @@
 # ROADMAP
 
-Ce document présente la feuille de route officielle d'**Ohanna-Installer**.
+Ce document présente la feuille de route officielle d'**Ohana-Installer**.
 
-L'objectif du projet est de fournir un installateur simple, fiable et reproductible pour l'ensemble de l'écosystème Ohanna.
+L'objectif du projet est de fournir un installateur simple, fiable et reproductible pour l'ensemble de l'écosystème Ohana.
 
 ---
 
@@ -18,7 +18,7 @@ L'objectif du projet est de fournir un installateur simple, fiable et reproducti
 
 ### 1.2 Interface en ligne de commande
 
-* Commande `ohanna`.
+* Commande `ohana`.
 * Gestion des arguments.
 * Aide intégrée.
 * Affichage de la version.
@@ -48,14 +48,14 @@ L'objectif du projet est de fournir un installateur simple, fiable et reproducti
 * Téléchargement sécurisé.
 * Vérification de la version.
 
-### 2.3 Installation d'Ohanna-Agent
+### 2.3 Installation d'Ohana-Agent
 
 * Installation du package.
 * Création de l'environnement Python.
 * Génération de la configuration.
 * Installation du service système.
 
-### 2.4 Installation d'Ohanna-Vision
+### 2.4 Installation d'Ohana-Vision
 
 * Installation du package.
 * Génération de la configuration.
@@ -163,4 +163,4 @@ Les fonctionnalités suivantes sont volontairement reportées après la version 
 * Support de Kubernetes.
 * Déploiement multi-sites.
 
-La priorité de la version **1.0.0** est de fournir un installateur officiel simple, fiable et stable pour l'écosystème Ohanna.
+La priorité de la version **1.0.0** est de fournir un installateur officiel simple, fiable et stable pour l'écosystème Ohana.

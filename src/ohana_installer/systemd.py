@@ -1,4 +1,4 @@
-"""Génération des unités systemd officielles Ohanna."""
+"""Génération des unités systemd officielles Ohana."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ComponentManifest,
     ComponentService,
 )

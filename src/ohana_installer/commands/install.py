@@ -9,8 +9,8 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
-from ohanna_installer.environment import EnvironmentCheck, run_environment_checks
-from ohanna_installer.github import (
+from ohana_installer.environment import EnvironmentCheck, run_environment_checks
+from ohana_installer.github import (
     DownloadedComponent,
     DownloadedConfigurationFile,
     DownloadError,
@@ -18,12 +18,12 @@ from ohanna_installer.github import (
     download_configuration_files,
     download_platform_manifest,
 )
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ComponentManifest,
     ManifestError,
     PlatformManifest,
 )
-from ohanna_installer.python_package import (
+from ohana_installer.python_package import (
     InstalledPythonComponent,
     PackageInstallationError,
     create_virtual_environment,
@@ -31,12 +31,12 @@ from ohanna_installer.python_package import (
     secure_installation_tree,
     verify_component_command,
 )
-from ohanna_installer.system_account import (
+from ohana_installer.system_account import (
     SystemAccount,
     SystemAccountError,
     ensure_system_account,
 )
-from ohanna_installer.systemd import (
+from ohana_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
     SystemdCommandError,
@@ -56,13 +56,13 @@ INSTALLATION_ERROR = 3
 MANIFEST_FILENAME = "release-manifest.yaml"
 
 AGENT_IDENTIFIER = "agent"
-AGENT_INSTALLATION_PATH = Path("/opt/ohanna-agent")
+AGENT_INSTALLATION_PATH = Path("/opt/ohana-agent")
 AGENT_ENVIRONMENT_PATH = AGENT_INSTALLATION_PATH / "venv"
-AGENT_COMMAND_NAME = "ohanna-agent"
+AGENT_COMMAND_NAME = "ohana-agent"
 VISION_IDENTIFIER = "vision"
-VISION_INSTALLATION_PATH = Path("/opt/ohanna-vision")
+VISION_INSTALLATION_PATH = Path("/opt/ohana-vision")
 VISION_ENVIRONMENT_PATH = VISION_INSTALLATION_PATH / "venv"
-VISION_COMMAND_NAME = "ohanna-vision"
+VISION_COMMAND_NAME = "ohana-vision"
 
 INSTALLATION_OWNER = "root"
 CONFIGURATION_OWNER = "root"
@@ -96,8 +96,8 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
 
     parser = subparsers.add_parser(
         "install",
-        help="Installer les composants officiels Ohanna.",
-        description="Installer les composants officiels Ohanna.",
+        help="Installer les composants officiels Ohana.",
+        description="Installer les composants officiels Ohana.",
     )
     parser.add_argument(
         "--yes",
@@ -117,7 +117,7 @@ def _display_check(check: EnvironmentCheck) -> None:
 def _display_manifest(manifest: PlatformManifest) -> None:
     """Afficher le contenu utile du manifeste."""
 
-    print(f"Plateforme Ohanna {manifest.platform_version}")
+    print(f"Plateforme Ohana {manifest.platform_version}")
     print()
 
     for component in manifest.components:
@@ -475,7 +475,7 @@ def _install_agent(
     *,
     replace: bool = False,
 ) -> InstalledPythonComponent:
-    """Install Ohanna-Agent in its virtual environment."""
+    """Install Ohana-Agent in its virtual environment."""
 
     return _install_component(
         downloaded_components,
@@ -492,7 +492,7 @@ def _install_vision(
     *,
     replace: bool = False,
 ) -> InstalledPythonComponent:
-    """Install Ohanna-Vision in its virtual environment."""
+    """Install Ohana-Vision in its virtual environment."""
 
     return _install_component(
         downloaded_components,
@@ -523,13 +523,13 @@ def run(args: argparse.Namespace) -> int:
         print("L'environnement ne permet pas de poursuivre l'installation.")
         return INSTALLATION_ERROR
 
-    print("L'environnement est compatible avec Ohanna-Installer.")
+    print("L'environnement est compatible avec Ohana-Installer.")
     print()
     print("Téléchargement du manifeste officiel...")
 
     try:
         with tempfile.TemporaryDirectory(
-            prefix="ohanna-installer-",
+            prefix="ohana-installer-",
         ) as temporary_directory:
             temporary_path = Path(temporary_directory)
 
@@ -598,7 +598,7 @@ def run(args: argparse.Namespace) -> int:
                 )
 
             print()
-            print("Installation d'Ohanna-Agent...")
+            print("Installation d'Ohana-Agent...")
 
             installed_agent = _install_agent(downloaded_components)
 
@@ -607,7 +607,7 @@ def run(args: argparse.Namespace) -> int:
                 f"{installed_agent.version} installé."
             )
             print()
-            print("Installation d'Ohanna-Vision...")
+            print("Installation d'Ohana-Vision...")
 
             installed_vision = _install_vision(
                 downloaded_components,
@@ -739,7 +739,7 @@ def run(args: argparse.Namespace) -> int:
 
     print()
     print(
-        "Ohanna-Agent et Ohanna-Vision sont installés, "
+        "Ohana-Agent et Ohana-Vision sont installés, "
         "configurés, activés et démarrés."
     )
 

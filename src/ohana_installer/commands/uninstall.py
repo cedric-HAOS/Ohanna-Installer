@@ -6,11 +6,11 @@ import argparse
 import shutil
 from pathlib import Path
 
-from ohanna_installer.commands.install import (
+from ohana_installer.commands.install import (
     AGENT_INSTALLATION_PATH,
     VISION_INSTALLATION_PATH,
 )
-from ohanna_installer.systemd import (
+from ohana_installer.systemd import (
     SYSTEMD_SYSTEM_DIRECTORY,
     SystemdCommandError,
     SystemdInstallationError,
@@ -23,8 +23,8 @@ from ohanna_installer.systemd import (
 UNINSTALLATION_ERROR = 3
 
 SERVICE_NAMES = (
-    "ohanna-agent.service",
-    "ohanna-vision.service",
+    "ohana-agent.service",
+    "ohana-vision.service",
 )
 
 INSTALLATION_PATHS = (
@@ -42,8 +42,8 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
 
     parser = subparsers.add_parser(
         "uninstall",
-        help="Désinstaller les composants officiels Ohanna.",
-        description="Désinstaller les composants officiels Ohanna.",
+        help="Désinstaller les composants officiels Ohana.",
+        description="Désinstaller les composants officiels Ohana.",
     )
     parser.add_argument(
         "--yes",
@@ -92,7 +92,7 @@ def run(args: argparse.Namespace) -> int:
 
     del args
 
-    print("Désinstallation des composants Ohanna...")
+    print("Désinstallation des composants Ohana...")
     print()
 
     try:
@@ -132,7 +132,7 @@ def run(args: argparse.Namespace) -> int:
 
             print("✓ Configuration systemd rechargée.")
         else:
-            print("✓ Aucun service systemd Ohanna installé.")
+            print("✓ Aucun service systemd Ohana installé.")
 
         print()
         print("Suppression des composants...")
@@ -157,7 +157,7 @@ def run(args: argparse.Namespace) -> int:
 
     print()
     print(
-        "Ohanna-Agent et Ohanna-Vision sont désinstallés."
+        "Ohana-Agent et Ohana-Vision sont désinstallés."
     )
     print(
         "Les fichiers de configuration ont été conservés."

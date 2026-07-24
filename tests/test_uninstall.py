@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.cli import main
-from ohanna_installer.commands.install import (
+from ohana_installer.cli import main
+from ohana_installer.commands.install import (
     AGENT_INSTALLATION_PATH,
     VISION_INSTALLATION_PATH,
 )
-from ohanna_installer.systemd import (
+from ohana_installer.systemd import (
     SystemdCommandError,
 )
 
@@ -23,33 +23,33 @@ def test_uninstall_removes_services_and_components(
     operations: list[str] = []
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall._service_is_installed",
+        "ohana_installer.commands.uninstall._service_is_installed",
         lambda service_name: True,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall.stop_systemd_service",
+        "ohana_installer.commands.uninstall.stop_systemd_service",
         lambda service_name: operations.append(
             f"stop:{service_name}"
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall.disable_systemd_service",
+        "ohana_installer.commands.uninstall.disable_systemd_service",
         lambda service_name: operations.append(
             f"disable:{service_name}"
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall.remove_systemd_service",
+        "ohana_installer.commands.uninstall.remove_systemd_service",
         lambda service_name: (
             operations.append(f"remove:{service_name}") or True
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall.reload_systemd_daemon",
+        "ohana_installer.commands.uninstall.reload_systemd_daemon",
         lambda: operations.append("reload"),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall._remove_installation_path",
+        "ohana_installer.commands.uninstall._remove_installation_path",
         lambda path: (
             operations.append(f"path:{path}") or True
         ),
@@ -58,12 +58,12 @@ def test_uninstall_removes_services_and_components(
     assert main(["uninstall"]) == 0
 
     assert operations == [
-        "stop:ohanna-agent.service",
-        "stop:ohanna-vision.service",
-        "disable:ohanna-agent.service",
-        "disable:ohanna-vision.service",
-        "remove:ohanna-agent.service",
-        "remove:ohanna-vision.service",
+        "stop:ohana-agent.service",
+        "stop:ohana-vision.service",
+        "disable:ohana-agent.service",
+        "disable:ohana-vision.service",
+        "remove:ohana-agent.service",
+        "remove:ohana-vision.service",
         "reload",
         f"path:{AGENT_INSTALLATION_PATH}",
         f"path:{VISION_INSTALLATION_PATH}",
@@ -71,12 +71,12 @@ def test_uninstall_removes_services_and_components(
 
     output = capsys.readouterr().out
 
-    assert "ohanna-agent.service arrêté" in output
-    assert "ohanna-vision.service désactivé" in output
+    assert "ohana-agent.service arrêté" in output
+    assert "ohana-vision.service désactivé" in output
     assert f"{AGENT_INSTALLATION_PATH} supprimé" in output
     assert f"{VISION_INSTALLATION_PATH} supprimé" in output
     assert (
-        "Ohanna-Agent et Ohanna-Vision sont désinstallés."
+        "Ohana-Agent et Ohana-Vision sont désinstallés."
     ) in output
     assert (
         "Les fichiers de configuration ont été conservés."
@@ -88,11 +88,11 @@ def test_uninstall_accepts_already_absent_installation(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall._service_is_installed",
+        "ohana_installer.commands.uninstall._service_is_installed",
         lambda service_name: False,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall._remove_installation_path",
+        "ohana_installer.commands.uninstall._remove_installation_path",
         lambda path: False,
     )
 
@@ -100,7 +100,7 @@ def test_uninstall_accepts_already_absent_installation(
 
     output = capsys.readouterr().out
 
-    assert "Aucun service systemd Ohanna installé" in output
+    assert "Aucun service systemd Ohana installé" in output
     assert f"{AGENT_INSTALLATION_PATH} déjà absent" in output
     assert f"{VISION_INSTALLATION_PATH} déjà absent" in output
 
@@ -110,7 +110,7 @@ def test_uninstall_fails_when_service_stop_fails(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall._service_is_installed",
+        "ohana_installer.commands.uninstall._service_is_installed",
         lambda service_name: True,
     )
 
@@ -120,7 +120,7 @@ def test_uninstall_fails_when_service_stop_fails(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.uninstall.stop_systemd_service",
+        "ohana_installer.commands.uninstall.stop_systemd_service",
         raise_stop_error,
     )
 
@@ -135,14 +135,14 @@ def test_uninstall_fails_when_service_stop_fails(
 def test_remove_installation_path_removes_directory(
     tmp_path: Path,
 ) -> None:
-    installation_path = tmp_path / "ohanna-agent"
+    installation_path = tmp_path / "ohana-agent"
     installation_path.mkdir()
     (installation_path / "file.txt").write_text(
         "content",
         encoding="utf-8",
     )
 
-    from ohanna_installer.commands.uninstall import (
+    from ohana_installer.commands.uninstall import (
         _remove_installation_path,
     )
 
@@ -157,7 +157,7 @@ def test_remove_installation_path_removes_directory(
 def test_remove_installation_path_accepts_missing_directory(
     tmp_path: Path,
 ) -> None:
-    from ohanna_installer.commands.uninstall import (
+    from ohana_installer.commands.uninstall import (
         _remove_installation_path,
     )
 

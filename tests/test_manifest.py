@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ManifestError,
     build_release_download_url,
     load_manifest,
@@ -16,7 +16,7 @@ from ohanna_installer.manifest import (
 VALID_MANIFEST = {
     "schema_version": 1,
     "platform": {
-        "name": "Ohanna",
+        "name": "Ohana",
         "version": "1.0.0",
     },
     "runtime": {
@@ -26,16 +26,16 @@ VALID_MANIFEST = {
     },
     "components": {
         "agent": {
-            "name": "Ohanna-Agent",
-            "repository": "cedric-HAOS/Ohanna-Agent",
+            "name": "Ohana-Agent",
+            "repository": "cedric-HAOS/Ohana-Agent",
             "version": "1.0.0",
             "release_tag": "v1.0.0",
             "package": {
                 "type": "wheel",
-                "filename": "ohanna_agent-1.0.0-py3-none-any.whl",
+                "filename": "ohana_agent-1.0.0-py3-none-any.whl",
             },
             "configuration": {
-                "directory": "/etc/ohanna-agent",
+                "directory": "/etc/ohana-agent",
                 "files": [
                     {
                         "source": "shikamaru.yaml",
@@ -52,38 +52,38 @@ VALID_MANIFEST = {
                 ],
             },
             "service": {
-                "filename": "ohanna-agent.service",
-                "description": "Ohanna Agent",
-                "user": "ohanna",
-                "group": "ohanna",
-                "working_directory": "/opt/ohanna-agent",
-                "executable": "/opt/ohanna-agent/venv/bin/ohanna-agent",
+                "filename": "ohana-agent.service",
+                "description": "Ohana Agent",
+                "user": "ohana",
+                "group": "ohana",
+                "working_directory": "/opt/ohana-agent",
+                "executable": "/opt/ohana-agent/venv/bin/ohana-agent",
                 "arguments": [
                     "--config",
-                    "/etc/ohanna-agent/shikamaru.yaml",
+                    "/etc/ohana-agent/shikamaru.yaml",
                     "--infrastructure",
-                    "/etc/ohanna-agent/infrastructure.yaml",
+                    "/etc/ohana-agent/infrastructure.yaml",
                     "--dns-config",
-                    "/etc/ohanna-agent/plugins/dns.yaml",
+                    "/etc/ohana-agent/plugins/dns.yaml",
                 ],
             },
         },
         "vision": {
-            "name": "Ohanna-Vision",
-            "repository": "cedric-HAOS/Ohanna-Vision",
+            "name": "Ohana-Vision",
+            "repository": "cedric-HAOS/Ohana-Vision",
             "version": "1.0.0",
             "release_tag": "v1.0.0",
             "package": {
                 "type": "wheel",
-                "filename": "ohanna_vision-1.0.0-py3-none-any.whl",
+                "filename": "ohana_vision-1.0.0-py3-none-any.whl",
             },
             "service": {
-                "filename": "ohanna-vision.service",
-                "description": "Ohanna Vision",
-                "user": "ohanna",
-                "group": "ohanna",
-                "working_directory": "/opt/ohanna-vision",
-                "executable": "/opt/ohanna-vision/venv/bin/ohanna-vision",
+                "filename": "ohana-vision.service",
+                "description": "Ohana Vision",
+                "user": "ohana",
+                "group": "ohana",
+                "working_directory": "/opt/ohana-vision",
+                "executable": "/opt/ohana-vision/venv/bin/ohana-vision",
                 "arguments": [],
             },
         },
@@ -101,7 +101,7 @@ def test_parse_manifest_returns_validated_manifest() -> None:
     manifest = parse_manifest(VALID_MANIFEST)
 
     assert manifest.schema_version == 1
-    assert manifest.platform_name == "Ohanna"
+    assert manifest.platform_name == "Ohana"
     assert manifest.platform_version == "1.0.0"
     assert manifest.runtime.minimum_python_version == "3.12"
     assert manifest.compatibility.operating_system_family == "Linux"
@@ -119,7 +119,7 @@ def test_load_manifest_reads_yaml_file(tmp_path: Path) -> None:
 schema_version: 1
 
 platform:
-  name: Ohanna
+  name: Ohana
   version: "1.0.0"
 
 runtime:
@@ -128,13 +128,13 @@ runtime:
 
 components:
   agent:
-    name: Ohanna-Agent
-    repository: cedric-HAOS/Ohanna-Agent
+    name: Ohana-Agent
+    repository: cedric-HAOS/Ohana-Agent
     version: "1.0.0"
     release_tag: v1.0.0
     package:
       type: wheel
-      filename: ohanna_agent-1.0.0-py3-none-any.whl
+      filename: ohana_agent-1.0.0-py3-none-any.whl
 
 compatibility:
   operating_system:
@@ -147,7 +147,7 @@ compatibility:
     manifest = load_manifest(manifest_path)
 
     assert manifest.platform_version == "1.0.0"
-    assert manifest.components[0].name == "Ohanna-Agent"
+    assert manifest.components[0].name == "Ohana-Agent"
 
 
 def test_load_manifest_fails_when_file_does_not_exist(
@@ -213,7 +213,7 @@ def test_parse_manifest_rejects_invalid_repository() -> None:
         "components": {
             "agent": {
                 **VALID_MANIFEST["components"]["agent"],
-                "repository": "Ohanna-Agent",
+                "repository": "Ohana-Agent",
             },
         },
     }
@@ -233,7 +233,7 @@ def test_parse_manifest_rejects_non_wheel_package() -> None:
                 **VALID_MANIFEST["components"]["agent"],
                 "package": {
                     "type": "archive",
-                    "filename": "ohanna-agent.tar.gz",
+                    "filename": "ohana-agent.tar.gz",
                 },
             },
         },
@@ -254,7 +254,7 @@ def test_parse_manifest_rejects_invalid_wheel_filename() -> None:
                 **VALID_MANIFEST["components"]["agent"],
                 "package": {
                     "type": "wheel",
-                    "filename": "ohanna-agent.tar.gz",
+                    "filename": "ohana-agent.tar.gz",
                 },
             },
         },
@@ -274,8 +274,8 @@ def test_build_release_download_url() -> None:
     url = build_release_download_url(component)
 
     assert url == (
-        "https://github.com/cedric-HAOS/Ohanna-Agent/releases/download/"
-        "v1.0.0/ohanna_agent-1.0.0-py3-none-any.whl"
+        "https://github.com/cedric-HAOS/Ohana-Agent/releases/download/"
+        "v1.0.0/ohana_agent-1.0.0-py3-none-any.whl"
     )
 
 def test_repository_manifest_is_valid() -> None:
@@ -284,7 +284,7 @@ def test_repository_manifest_is_valid() -> None:
 
     manifest = load_manifest(manifest_path)
 
-    assert manifest.platform_name == "Ohanna"
+    assert manifest.platform_name == "Ohana"
     assert manifest.platform_version == "1.0.0"
     assert {component.identifier for component in manifest.components} == {
         "agent",
@@ -305,7 +305,7 @@ def test_repository_manifest_is_valid() -> None:
     assert agent.version == "1.1.0"
     assert agent.release_tag == "v1.1.0"
     assert agent.package.filename == (
-        "ohanna_agent-1.1.0-py3-none-any.whl"
+        "ohana_agent-1.1.0-py3-none-any.whl"
     )
     assert agent.configuration is not None
     assert agent.service is not None
@@ -321,7 +321,7 @@ def test_repository_manifest_is_valid() -> None:
     assert vision.version == "1.1.0"
     assert vision.release_tag == "v1.1.0"
     assert vision.package.filename == (
-        "ohanna_vision-1.1.0-py3-none-any.whl"
+        "ohana_vision-1.1.0-py3-none-any.whl"
     )
     assert vision.configuration is not None
     assert vision.service is not None
@@ -340,7 +340,7 @@ def test_parse_manifest_reads_agent_configuration() -> None:
     )
 
     assert agent.configuration is not None
-    assert agent.configuration.directory == Path("/etc/ohanna-agent")
+    assert agent.configuration.directory == Path("/etc/ohana-agent")
     assert agent.configuration.files[0].source == "shikamaru.yaml"
     assert (
         agent.configuration.files[2].destination
@@ -368,7 +368,7 @@ def test_parse_manifest_rejects_relative_configuration_directory() -> None:
             "agent": {
                 **VALID_MANIFEST["components"]["agent"],
                 "configuration": {
-                    "directory": "etc/ohanna-agent",
+                    "directory": "etc/ohana-agent",
                     "files": [
                         {
                             "source": "shikamaru.yaml",
@@ -395,7 +395,7 @@ def test_parse_manifest_rejects_absolute_configuration_destination() -> None:
             "agent": {
                 **VALID_MANIFEST["components"]["agent"],
                 "configuration": {
-                    "directory": "/etc/ohanna-agent",
+                    "directory": "/etc/ohana-agent",
                     "files": [
                         {
                             "source": "shikamaru.yaml",
@@ -422,7 +422,7 @@ def test_parse_manifest_rejects_parent_directory_in_destination() -> None:
             "agent": {
                 **VALID_MANIFEST["components"]["agent"],
                 "configuration": {
-                    "directory": "/etc/ohanna-agent",
+                    "directory": "/etc/ohana-agent",
                     "files": [
                         {
                             "source": "shikamaru.yaml",
@@ -455,10 +455,10 @@ def test_parse_manifest_reads_component_services() -> None:
     )
 
     assert agent.service is not None
-    assert agent.service.filename == "ohanna-agent.service"
-    assert agent.service.user == "ohanna"
+    assert agent.service.filename == "ohana-agent.service"
+    assert agent.service.user == "ohana"
     assert agent.service.arguments[0] == "--config"
 
     assert vision.service is not None
-    assert vision.service.filename == "ohanna-vision.service"
+    assert vision.service.filename == "ohana-vision.service"
     assert vision.service.arguments == ()

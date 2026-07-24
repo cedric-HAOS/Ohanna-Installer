@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ohanna_installer.github import (
+from ohana_installer.github import (
     DownloadedComponent,
     DownloadedConfigurationFile,
     DownloadError,
@@ -20,7 +20,7 @@ from ohanna_installer.github import (
     download_file,
     download_platform_manifest,
 )
-from ohanna_installer.manifest import (
+from ohana_installer.manifest import (
     ComponentConfiguration,
     ComponentManifest,
     ComponentPackage,
@@ -32,7 +32,7 @@ VALID_MANIFEST_CONTENT = b"""
 schema_version: 1
 
 platform:
-  name: Ohanna
+  name: Ohana
   version: "1.0.0"
 
 runtime:
@@ -41,22 +41,22 @@ runtime:
 
 components:
   agent:
-    name: Ohanna-Agent
-    repository: cedric-HAOS/Ohanna-Agent
+    name: Ohana-Agent
+    repository: cedric-HAOS/Ohana-Agent
     version: "1.0.0"
     release_tag: v1.0.0
     package:
       type: wheel
-      filename: ohanna_agent-1.0.0-py3-none-any.whl
+      filename: ohana_agent-1.0.0-py3-none-any.whl
 
   vision:
-    name: Ohanna-Vision
-    repository: cedric-HAOS/Ohanna-Vision
+    name: Ohana-Vision
+    repository: cedric-HAOS/Ohana-Vision
     version: "1.0.0"
     release_tag: v1.0.0
     package:
       type: wheel
-      filename: ohanna_vision-1.0.0-py3-none-any.whl
+      filename: ohana_vision-1.0.0-py3-none-any.whl
 
 compatibility:
   operating_system:
@@ -67,13 +67,13 @@ compatibility:
 
 def test_build_release_asset_url() -> None:
     url = build_release_asset_url(
-        repository="cedric-HAOS/Ohanna-Platform",
+        repository="cedric-HAOS/Ohana-Platform",
         release_tag="v1.0.0",
         filename="release-manifest.yaml",
     )
 
     assert url == (
-        "https://github.com/cedric-HAOS/Ohanna-Platform/releases/download/"
+        "https://github.com/cedric-HAOS/Ohana-Platform/releases/download/"
         "v1.0.0/release-manifest.yaml"
     )
 
@@ -88,7 +88,7 @@ def test_download_file_writes_response_content(
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -113,7 +113,7 @@ def test_download_file_creates_parent_directories(
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -137,7 +137,7 @@ def test_download_file_rejects_empty_content(
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -169,7 +169,7 @@ def test_download_file_handles_http_error(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         raise_http_error,
     )
 
@@ -191,7 +191,7 @@ def test_download_file_handles_network_error(
         raise urllib.error.URLError("connection refused")
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         raise_url_error,
     )
 
@@ -215,7 +215,7 @@ def test_download_platform_manifest_returns_valid_manifest(
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -224,7 +224,7 @@ def test_download_platform_manifest_returns_valid_manifest(
     manifest = download_platform_manifest(destination)
 
     assert destination.exists()
-    assert manifest.platform_name == "Ohanna"
+    assert manifest.platform_name == "Ohana"
     assert manifest.platform_version == "1.0.0"
     assert len(manifest.components) == 2
 
@@ -239,7 +239,7 @@ def test_download_platform_manifest_removes_invalid_manifest(
     response.__exit__.return_value = False
 
     monkeypatch.setattr(
-        "ohanna_installer.github.urllib.request.urlopen",
+        "ohana_installer.github.urllib.request.urlopen",
         lambda request, timeout: response,
     )
 
@@ -253,8 +253,8 @@ def test_download_platform_manifest_removes_invalid_manifest(
 def _build_component(
     *,
     identifier: str = "agent",
-    name: str = "Ohanna-Agent",
-    filename: str = "ohanna_agent-1.0.0-py3-none-any.whl",
+    name: str = "Ohana-Agent",
+    filename: str = "ohana_agent-1.0.0-py3-none-any.whl",
     configuration: ComponentConfiguration | None = None,
 ) -> ComponentManifest:
     return ComponentManifest(
@@ -284,9 +284,9 @@ def test_download_component_package_downloads_wheel(
         timeout: float,
     ) -> Path:
         assert url == (
-            "https://github.com/cedric-HAOS/Ohanna-Agent/releases/"
+            "https://github.com/cedric-HAOS/Ohana-Agent/releases/"
             "download/v1.0.0/"
-            "ohanna_agent-1.0.0-py3-none-any.whl"
+            "ohana_agent-1.0.0-py3-none-any.whl"
         )
         assert destination == expected_path
         assert timeout == 15.0
@@ -295,7 +295,7 @@ def test_download_component_package_downloads_wheel(
         return destination
 
     monkeypatch.setattr(
-        "ohanna_installer.github.download_file",
+        "ohana_installer.github.download_file",
         fake_download_file,
     )
 
@@ -317,8 +317,8 @@ def test_download_component_packages_downloads_all_components(
     agent = _build_component()
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
-        filename="ohanna_vision-1.0.0-py3-none-any.whl",
+        name="Ohana-Vision",
+        filename="ohana_vision-1.0.0-py3-none-any.whl",
     )
 
     downloaded_filenames: list[str] = []
@@ -339,7 +339,7 @@ def test_download_component_packages_downloads_all_components(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.github.download_component_package",
+        "ohana_installer.github.download_component_package",
         fake_download_component_package,
     )
 
@@ -350,8 +350,8 @@ def test_download_component_packages_downloads_all_components(
 
     assert len(results) == 2
     assert downloaded_filenames == [
-        "ohanna_agent-1.0.0-py3-none-any.whl",
-        "ohanna_vision-1.0.0-py3-none-any.whl",
+        "ohana_agent-1.0.0-py3-none-any.whl",
+        "ohana_vision-1.0.0-py3-none-any.whl",
     ]
     assert all(result.path.exists() for result in results)
 
@@ -363,8 +363,8 @@ def test_download_component_packages_stops_on_first_error(
     agent = _build_component()
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
-        filename="ohanna_vision-1.0.0-py3-none-any.whl",
+        name="Ohana-Vision",
+        filename="ohana_vision-1.0.0-py3-none-any.whl",
     )
 
     attempted_components: list[str] = []
@@ -386,7 +386,7 @@ def test_download_component_packages_stops_on_first_error(
         raise AssertionError("Vision ne doit pas être téléchargé.")
 
     monkeypatch.setattr(
-        "ohanna_installer.github.download_component_package",
+        "ohana_installer.github.download_component_package",
         fake_download_component_package,
     )
 
@@ -404,7 +404,7 @@ def test_download_component_configuration_files_downloads_agent_files(
 ) -> None:
     component = _build_component(
         configuration=ComponentConfiguration(
-            directory=Path("/etc/ohanna-agent"),
+            directory=Path("/etc/ohana-agent"),
             files=(
                 ConfigurationFile(
                     source="shikamaru.yaml",
@@ -433,7 +433,7 @@ def test_download_component_configuration_files_downloads_agent_files(
         return destination
 
     monkeypatch.setattr(
-        "ohanna_installer.github.download_file",
+        "ohana_installer.github.download_file",
         fake_download_file,
     )
 
@@ -455,11 +455,11 @@ def test_download_component_configuration_files_downloads_agent_files(
     )
     assert downloaded_urls == [
         (
-            "https://github.com/cedric-HAOS/Ohanna-Agent/releases/"
+            "https://github.com/cedric-HAOS/Ohana-Agent/releases/"
             "download/v1.0.0/shikamaru.yaml"
         ),
         (
-            "https://github.com/cedric-HAOS/Ohanna-Agent/releases/"
+            "https://github.com/cedric-HAOS/Ohana-Agent/releases/"
             "download/v1.0.0/dns.yaml"
         ),
     ]
@@ -484,7 +484,7 @@ def test_download_configuration_files_downloads_only_declared_configurations(
 ) -> None:
     agent = _build_component(
         configuration=ComponentConfiguration(
-            directory=Path("/etc/ohanna-agent"),
+            directory=Path("/etc/ohana-agent"),
             files=(
                 ConfigurationFile(
                     source="shikamaru.yaml",
@@ -495,8 +495,8 @@ def test_download_configuration_files_downloads_only_declared_configurations(
     )
     vision = _build_component(
         identifier="vision",
-        name="Ohanna-Vision",
-        filename="ohanna_vision-1.0.0-py3-none-any.whl",
+        name="Ohana-Vision",
+        filename="ohana_vision-1.0.0-py3-none-any.whl",
         configuration=None,
     )
 
@@ -523,7 +523,7 @@ def test_download_configuration_files_downloads_only_declared_configurations(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.github.download_component_configuration_files",
+        "ohana_installer.github.download_component_configuration_files",
         fake_download_component_configuration_files,
     )
 

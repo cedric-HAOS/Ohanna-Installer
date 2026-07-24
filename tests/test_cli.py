@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.cli import main
-from ohanna_installer.environment import EnvironmentCheck
-from ohanna_installer.github import DownloadedComponent, DownloadError
-from ohanna_installer.manifest import (
+from ohana_installer.cli import main
+from ohana_installer.environment import EnvironmentCheck
+from ohana_installer.github import DownloadedComponent, DownloadError
+from ohana_installer.manifest import (
     CompatibilityManifest,
     ComponentManifest,
     ComponentPackage,
@@ -17,25 +17,25 @@ from ohanna_installer.manifest import (
     PlatformManifest,
     RuntimeManifest,
 )
-from ohanna_installer.python_package import (
+from ohana_installer.python_package import (
     InstalledPythonComponent,
     PackageInstallationError,
 )
-from ohanna_installer.system_account import SystemAccount
-from ohanna_installer.systemd import (
+from ohana_installer.system_account import SystemAccount
+from ohana_installer.systemd import (
     GeneratedSystemdService,
     InstalledSystemdService,
     SystemdCommandError,
     SystemdInstallationError,
     SystemdServiceStatus,
 )
-from ohanna_installer.version import __version__
+from ohana_installer.version import __version__
 
 
 def _build_manifest() -> PlatformManifest:
     return PlatformManifest(
         schema_version=1,
-        platform_name="Ohanna",
+        platform_name="Ohana",
         platform_version="1.0.0",
         runtime=RuntimeManifest(
             minimum_python_version="3.12",
@@ -43,24 +43,24 @@ def _build_manifest() -> PlatformManifest:
         components=(
             ComponentManifest(
                 identifier="agent",
-                name="Ohanna-Agent",
-                repository="cedric-HAOS/Ohanna-Agent",
+                name="Ohana-Agent",
+                repository="cedric-HAOS/Ohana-Agent",
                 version="1.0.0",
                 release_tag="v1.0.0",
                 package=ComponentPackage(
                     type="wheel",
-                    filename="ohanna_agent-1.0.0-py3-none-any.whl",
+                    filename="ohana_agent-1.0.0-py3-none-any.whl",
                 ),
             ),
             ComponentManifest(
                 identifier="vision",
-                name="Ohanna-Vision",
-                repository="cedric-HAOS/Ohanna-Vision",
+                name="Ohana-Vision",
+                repository="cedric-HAOS/Ohana-Vision",
                 version="1.0.0",
                 release_tag="v1.0.0",
                 package=ComponentPackage(
                     type="wheel",
-                    filename="ohanna_vision-1.0.0-py3-none-any.whl",
+                    filename="ohana_vision-1.0.0-py3-none-any.whl",
                 ),
             ),
         ),
@@ -86,11 +86,11 @@ def _build_downloaded_components(
 
 def _build_installed_agent() -> InstalledPythonComponent:
     return InstalledPythonComponent(
-        name="Ohanna-Agent",
+        name="Ohana-Agent",
         version="1.0.0",
-        environment_path=Path("/opt/ohanna-agent/venv"),
+        environment_path=Path("/opt/ohana-agent/venv"),
         executable_path=Path(
-            "/opt/ohanna-agent/venv/bin/ohanna-agent"
+            "/opt/ohana-agent/venv/bin/ohana-agent"
         ),
     )
 
@@ -113,17 +113,17 @@ def _build_installed_services(
     return (
         InstalledSystemdService(
             component=agent,
-            source_path=directory / "ohanna-agent.service",
+            source_path=directory / "ohana-agent.service",
             destination_path=Path(
-                "/etc/systemd/system/ohanna-agent.service"
+                "/etc/systemd/system/ohana-agent.service"
             ),
             created=True,
         ),
         InstalledSystemdService(
             component=vision,
-            source_path=directory / "ohanna-vision.service",
+            source_path=directory / "ohana-vision.service",
             destination_path=Path(
-                "/etc/systemd/system/ohanna-vision.service"
+                "/etc/systemd/system/ohana-vision.service"
             ),
             created=True,
         ),
@@ -149,7 +149,7 @@ def test_cli_displays_version(
         main(["--version"])
 
     assert exc_info.value.code == 0
-    assert capsys.readouterr().out.strip() == f"ohanna {__version__}"
+    assert capsys.readouterr().out.strip() == f"ohana {__version__}"
 
 
 def test_cli_displays_help(
@@ -162,7 +162,7 @@ def test_cli_displays_help(
 
     output = capsys.readouterr().out
 
-    assert "usage: ohanna" in output
+    assert "usage: ohana" in output
     assert "install" in output
     assert "update" in output
     assert "uninstall" in output
@@ -187,7 +187,7 @@ def test_command_displays_help(
 
     output = capsys.readouterr().out
 
-    assert f"usage: ohanna {command}" in output
+    assert f"usage: ohana {command}" in output
     assert "--yes" in output
 
 
@@ -206,7 +206,7 @@ def test_install_fails_when_environment_is_incompatible(
         return _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -216,7 +216,7 @@ def test_install_fails_when_environment_is_incompatible(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         load_manifest,
     )
 
@@ -234,7 +234,7 @@ def test_install_fails_when_manifest_download_fails(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -251,7 +251,7 @@ def test_install_fails_when_manifest_download_fails(
         raise DownloadError("connexion refusée")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         raise_download_error,
     )
 
@@ -268,7 +268,7 @@ def test_install_fails_when_manifest_is_invalid(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -285,7 +285,7 @@ def test_install_fails_when_manifest_is_invalid(
         raise ManifestError("schéma invalide")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         raise_manifest_error,
     )
 
@@ -313,11 +313,11 @@ def test_load_official_manifest_uses_expected_destination(
         return expected_manifest
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.download_platform_manifest",
+        "ohana_installer.commands.install.download_platform_manifest",
         fake_download,
     )
 
-    from ohanna_installer.commands.install import (
+    from ohana_installer.commands.install import (
         _load_official_manifest,
     )
 
@@ -336,7 +336,7 @@ def test_install_downloads_and_installs_official_components(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -346,65 +346,65 @@ def test_install_downloads_and_installs_official_components(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._ensure_service_accounts",
+        "ohana_installer.commands.install._ensure_service_accounts",
         lambda manifest: (
             SystemAccount(
-                username="ohanna",
-                group_name="ohanna",
+                username="ohana",
+                group_name="ohana",
                 user_created=True,
                 group_created=True,
             ),
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: _build_installed_services(
             manifest,
             Path("/tmp/systemd"),
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         lambda: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._enable_services",
+        "ohana_installer.commands.install._enable_services",
         lambda installed_services: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._check_services",
+        "ohana_installer.commands.install._check_services",
         lambda installed_services: (
             SystemdServiceStatus(
-                service_name="ohanna-agent.service",
+                service_name="ohana-agent.service",
                 active=True,
                 status="active",
             ),
             SystemdServiceStatus(
-                service_name="ohanna-vision.service",
+                service_name="ohana-vision.service",
                 active=True,
                 status="active",
             ),
@@ -416,30 +416,30 @@ def test_install_downloads_and_installs_official_components(
     output = capsys.readouterr().out
 
     assert "Téléchargement des composants" in output
-    assert "✓ Ohanna-Agent 1.0.0 téléchargé." in output
-    assert "✓ Ohanna-Vision 1.0.0 téléchargé." in output
+    assert "✓ Ohana-Agent 1.0.0 téléchargé." in output
+    assert "✓ Ohana-Vision 1.0.0 téléchargé." in output
     assert "Téléchargement des configurations" in output
     assert "Préparation des comptes système" in output
-    assert "Groupe système ohanna créé" in output
-    assert "Compte système ohanna créé" in output
-    assert "Installation d'Ohanna-Agent" in output
-    assert "✓ Ohanna-Agent 1.0.0 installé." in output
-    assert "Installation d'Ohanna-Vision" in output
-    assert "✓ Ohanna-Vision 1.0.0 installé." in output
+    assert "Groupe système ohana créé" in output
+    assert "Compte système ohana créé" in output
+    assert "Installation d'Ohana-Agent" in output
+    assert "✓ Ohana-Agent 1.0.0 installé." in output
+    assert "Installation d'Ohana-Vision" in output
+    assert "✓ Ohana-Vision 1.0.0 installé." in output
     assert "Installation des fichiers de configuration" in output
     assert "Rechargement de systemd" in output
     assert "✓ Configuration systemd rechargée." in output
     assert "Activation des services systemd" in output
-    assert "✓ ohanna-agent.service activé." in output
-    assert "✓ ohanna-vision.service activé." in output
+    assert "✓ ohana-agent.service activé." in output
+    assert "✓ ohana-vision.service activé." in output
     assert "Démarrage des services systemd" in output
-    assert "ohanna-agent.service démarré" in output
-    assert "ohanna-vision.service démarré" in output
+    assert "ohana-agent.service démarré" in output
+    assert "ohana-vision.service démarré" in output
     assert "Vérification des services systemd" in output
-    assert "ohanna-agent.service est actif" in output
-    assert "ohanna-vision.service est actif" in output
+    assert "ohana-agent.service est actif" in output
+    assert "ohana-vision.service est actif" in output
     assert (
-        "Ohanna-Agent et Ohanna-Vision sont installés, "
+        "Ohana-Agent et Ohana-Vision sont installés, "
         "configurés, activés et démarrés."
     ) in output
 
@@ -451,7 +451,7 @@ def test_install_fails_when_component_download_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -461,11 +461,11 @@ def test_install_fails_when_component_download_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -479,7 +479,7 @@ def test_install_fails_when_component_download_fails(
         raise DownloadError("wheel introuvable")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         raise_download_error,
     )
 
@@ -498,7 +498,7 @@ def test_install_fails_when_agent_installation_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -508,15 +508,15 @@ def test_install_fails_when_agent_installation_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -528,7 +528,7 @@ def test_install_fails_when_agent_installation_fails(
         raise PackageInstallationError("échec de pip")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         raise_installation_error,
     )
 
@@ -545,7 +545,7 @@ def test_install_fails_when_agent_installation_fails(
         return _build_installed_vision()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         install_vision,
     )
 
@@ -598,49 +598,49 @@ def test_install_agent_creates_environment_and_installs_wheel(
         installed_wheel = package_path
 
         assert environment_path == Path(
-            "/opt/ohanna-agent/venv"
+            "/opt/ohana-agent/venv"
         )
 
     expected_component = _build_installed_agent()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.create_virtual_environment",
+        "ohana_installer.commands.install.create_virtual_environment",
         fake_create_virtual_environment,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.install_wheel",
+        "ohana_installer.commands.install.install_wheel",
         fake_install_wheel,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.verify_component_command",
+        "ohana_installer.commands.install.verify_component_command",
         lambda **kwargs: expected_component,
     )
     secured_installations: list[tuple[Path, str, str]] = []
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.secure_installation_tree",
+        "ohana_installer.commands.install.secure_installation_tree",
         lambda path, *, owner, group: secured_installations.append(
             (Path(path), owner, group)
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         lambda: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
-    from ohanna_installer.commands.install import _install_agent
+    from ohana_installer.commands.install import _install_agent
 
     result = _install_agent(downloaded_components)
 
     assert created_environment == Path(
-        "/opt/ohanna-agent/venv"
+        "/opt/ohana-agent/venv"
     )
     assert installed_wheel == wheel_path
     assert secured_installations == [
-        (Path("/opt/ohanna-agent"), "root", "root"),
+        (Path("/opt/ohana-agent"), "root", "root"),
     ]
     assert result == expected_component
 
@@ -651,7 +651,7 @@ def test_install_fails_when_systemd_reload_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -661,27 +661,27 @@ def test_install_fails_when_systemd_reload_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: (),
     )
 
@@ -689,11 +689,11 @@ def test_install_fails_when_systemd_reload_fails(
         raise SystemdCommandError("daemon-reload refusé")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         raise_reload_error,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -720,7 +720,7 @@ def test_install_agent_fails_when_agent_was_not_downloaded() -> None:
         ),
     )
 
-    from ohanna_installer.commands.install import _install_agent
+    from ohana_installer.commands.install import _install_agent
 
     with pytest.raises(
         PackageInstallationError,
@@ -730,11 +730,11 @@ def test_install_agent_fails_when_agent_was_not_downloaded() -> None:
 
 def _build_installed_vision() -> InstalledPythonComponent:
     return InstalledPythonComponent(
-        name="Ohanna-Vision",
+        name="Ohana-Vision",
         version="1.0.0",
-        environment_path=Path("/opt/ohanna-vision/venv"),
+        environment_path=Path("/opt/ohana-vision/venv"),
         executable_path=Path(
-            "/opt/ohanna-vision/venv/bin/ohanna-vision"
+            "/opt/ohana-vision/venv/bin/ohana-vision"
         ),
     )
 
@@ -745,7 +745,7 @@ def test_install_fails_when_vision_installation_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -755,15 +755,15 @@ def test_install_fails_when_vision_installation_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
 
@@ -775,11 +775,11 @@ def test_install_fails_when_vision_installation_fails(
         raise PackageInstallationError("échec de Vision")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         raise_installation_error,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -787,8 +787,8 @@ def test_install_fails_when_vision_installation_fails(
 
     output = capsys.readouterr().out
 
-    assert "✓ Ohanna-Agent 1.0.0 installé." in output
-    assert "Installation d'Ohanna-Vision" in output
+    assert "✓ Ohana-Agent 1.0.0 installé." in output
+    assert "Installation d'Ohana-Vision" in output
     assert "Installation impossible" in output
     assert "échec de Vision" in output
 
@@ -833,7 +833,7 @@ def test_install_vision_creates_environment_and_installs_wheel(
         installed_wheel = package_path
 
         assert environment_path == Path(
-            "/opt/ohanna-vision/venv"
+            "/opt/ohana-vision/venv"
         )
 
     def fake_verify_component_command(
@@ -845,53 +845,53 @@ def test_install_vision_creates_environment_and_installs_wheel(
         return _build_installed_vision()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.create_virtual_environment",
+        "ohana_installer.commands.install.create_virtual_environment",
         fake_create_virtual_environment,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.install_wheel",
+        "ohana_installer.commands.install.install_wheel",
         fake_install_wheel,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.verify_component_command",
+        "ohana_installer.commands.install.verify_component_command",
         fake_verify_component_command,
     )
     secured_installations: list[tuple[Path, str, str]] = []
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.secure_installation_tree",
+        "ohana_installer.commands.install.secure_installation_tree",
         lambda path, *, owner, group: secured_installations.append(
             (Path(path), owner, group)
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
-    from ohanna_installer.commands.install import _install_vision
+    from ohana_installer.commands.install import _install_vision
 
     result = _install_vision(downloaded_components)
 
     assert created_environment == Path(
-        "/opt/ohanna-vision/venv"
+        "/opt/ohana-vision/venv"
     )
     assert installed_wheel == wheel_path
     assert verification_arguments == {
-        "environment_path": Path("/opt/ohanna-vision/venv"),
-        "command_name": "ohanna-vision",
+        "environment_path": Path("/opt/ohana-vision/venv"),
+        "command_name": "ohana-vision",
         "expected_version": "1.0.0",
-        "component_name": "Ohanna-Vision",
+        "component_name": "Ohana-Vision",
     }
     assert secured_installations == [
-        (Path("/opt/ohanna-vision"), "root", "root"),
+        (Path("/opt/ohana-vision"), "root", "root"),
     ]
     assert result == _build_installed_vision()
 
@@ -911,7 +911,7 @@ def test_install_vision_fails_when_vision_was_not_downloaded() -> None:
         ),
     )
 
-    from ohanna_installer.commands.install import _install_vision
+    from ohana_installer.commands.install import _install_vision
 
     with pytest.raises(
         PackageInstallationError,
@@ -926,7 +926,7 @@ def test_install_fails_when_systemd_installation_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -936,27 +936,27 @@ def test_install_fails_when_systemd_installation_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -969,7 +969,7 @@ def test_install_fails_when_systemd_installation_fails(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         raise_systemd_error,
     )
 
@@ -987,7 +987,7 @@ def test_install_fails_when_systemd_enable_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -997,35 +997,35 @@ def test_install_fails_when_systemd_enable_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         lambda: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
 
@@ -1038,7 +1038,7 @@ def test_install_fails_when_systemd_enable_fails(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._enable_services",
+        "ohana_installer.commands.install._enable_services",
         raise_enable_error,
     )
 
@@ -1056,7 +1056,7 @@ def test_install_fails_when_systemd_start_fails(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -1066,35 +1066,35 @@ def test_install_fails_when_systemd_start_fails(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         lambda: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._enable_services",
+        "ohana_installer.commands.install._enable_services",
         lambda installed_services: None,
     )
 
@@ -1105,7 +1105,7 @@ def test_install_fails_when_systemd_start_fails(
         raise SystemdCommandError("démarrage refusé")
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         raise_start_error,
     )
 
@@ -1124,7 +1124,7 @@ def test_install_fails_when_service_is_not_active(
     manifest = _build_manifest()
 
     monkeypatch.setattr(
-        "ohanna_installer.commands.install.run_environment_checks",
+        "ohana_installer.commands.install.run_environment_checks",
         lambda: (
             EnvironmentCheck(
                 name="Linux",
@@ -1134,54 +1134,54 @@ def test_install_fails_when_service_is_not_active(
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._load_official_manifest",
+        "ohana_installer.commands.install._load_official_manifest",
         lambda directory: manifest,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._download_components",
+        "ohana_installer.commands.install._download_components",
         _build_downloaded_components,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_agent",
+        "ohana_installer.commands.install._install_agent",
         lambda downloaded_components: _build_installed_agent(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_vision",
+        "ohana_installer.commands.install._install_vision",
         lambda downloaded_components: _build_installed_vision(),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._generate_services",
+        "ohana_installer.commands.install._generate_services",
         lambda manifest, directory: (),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._install_services",
+        "ohana_installer.commands.install._install_services",
         lambda generated_services: _build_installed_services(
             manifest,
             Path("/tmp/systemd"),
         ),
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._reload_systemd",
+        "ohana_installer.commands.install._reload_systemd",
         lambda: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._enable_services",
+        "ohana_installer.commands.install._enable_services",
         lambda installed_services: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._start_services",
+        "ohana_installer.commands.install._start_services",
         lambda installed_services: None,
     )
     monkeypatch.setattr(
-        "ohanna_installer.commands.install._check_services",
+        "ohana_installer.commands.install._check_services",
         lambda installed_services: (
             SystemdServiceStatus(
-                service_name="ohanna-agent.service",
+                service_name="ohana-agent.service",
                 active=False,
                 status="failed",
             ),
             SystemdServiceStatus(
-                service_name="ohanna-vision.service",
+                service_name="ohana-vision.service",
                 active=True,
                 status="active",
             ),
@@ -1193,16 +1193,16 @@ def test_install_fails_when_service_is_not_active(
     output = capsys.readouterr().out
 
     assert "Vérification des services systemd" in output
-    assert "ohanna-agent.service est failed" in output
-    assert "ohanna-vision.service est actif" not in output
+    assert "ohana-agent.service est failed" in output
+    assert "ohana-vision.service est actif" not in output
 
 
 def test_prepare_installation_path_removes_existing_tree(
     tmp_path: Path,
 ) -> None:
-    from ohanna_installer.commands.install import _prepare_installation_path
+    from ohana_installer.commands.install import _prepare_installation_path
 
-    installation_path = tmp_path / "ohanna-agent"
+    installation_path = tmp_path / "ohana-agent"
     (installation_path / "venv").mkdir(parents=True)
 
     removed = _prepare_installation_path(
@@ -1217,9 +1217,9 @@ def test_prepare_installation_path_removes_existing_tree(
 def test_prepare_installation_path_preserves_tree_without_replace(
     tmp_path: Path,
 ) -> None:
-    from ohanna_installer.commands.install import _prepare_installation_path
+    from ohana_installer.commands.install import _prepare_installation_path
 
-    installation_path = tmp_path / "ohanna-agent"
+    installation_path = tmp_path / "ohana-agent"
     installation_path.mkdir()
 
     removed = _prepare_installation_path(
@@ -1232,28 +1232,28 @@ def test_prepare_installation_path_preserves_tree_without_replace(
 
 
 def test_installation_group_is_derived_from_service() -> None:
-    from ohanna_installer.commands.install import _installation_group_name
-    from ohanna_installer.manifest import ComponentService
+    from ohana_installer.commands.install import _installation_group_name
+    from ohana_installer.manifest import ComponentService
 
     component = ComponentManifest(
         identifier="agent",
-        name="Ohanna-Agent",
-        repository="cedric-HAOS/Ohanna-Agent",
+        name="Ohana-Agent",
+        repository="cedric-HAOS/Ohana-Agent",
         version="1.1.0",
         release_tag="v1.1.0",
         package=ComponentPackage(
             type="wheel",
-            filename="ohanna_agent-1.1.0-py3-none-any.whl",
+            filename="ohana_agent-1.1.0-py3-none-any.whl",
         ),
         service=ComponentService(
-            filename="ohanna-agent.service",
-            description="Ohanna Agent",
-            user="ohanna",
-            group="ohanna",
-            working_directory=Path("/opt/ohanna-agent"),
-            executable=Path("/opt/ohanna-agent/venv/bin/ohanna-agent"),
+            filename="ohana-agent.service",
+            description="Ohana Agent",
+            user="ohana",
+            group="ohana",
+            working_directory=Path("/opt/ohana-agent"),
+            executable=Path("/opt/ohana-agent/venv/bin/ohana-agent"),
             arguments=(),
         ),
     )
 
-    assert _installation_group_name(component) == "ohanna"
+    assert _installation_group_name(component) == "ohana"

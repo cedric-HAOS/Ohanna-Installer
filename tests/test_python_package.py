@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ohanna_installer.python_package import (
+from ohana_installer.python_package import (
     PackageInstallationError,
     create_virtual_environment,
     get_environment_executable,
@@ -46,7 +46,7 @@ def test_create_virtual_environment_runs_python_venv(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.python_package._run_command",
+        "ohana_installer.python_package._run_command",
         fake_run_command,
     )
 
@@ -82,7 +82,7 @@ def test_install_wheel_runs_environment_pip(
     monkeypatch,
 ) -> None:
     environment_path = tmp_path / "venv"
-    wheel_path = tmp_path / "ohanna_agent.whl"
+    wheel_path = tmp_path / "ohana_agent.whl"
     wheel_path.write_bytes(b"wheel")
 
     pip_path = get_environment_executable(
@@ -112,7 +112,7 @@ def test_install_wheel_runs_environment_pip(
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.python_package._run_command",
+        "ohana_installer.python_package._run_command",
         fake_run_command,
     )
 
@@ -149,7 +149,7 @@ def test_verify_component_command_accepts_expected_version(
     environment_path = tmp_path / "venv"
     executable_path = get_environment_executable(
         environment_path,
-        "ohanna-agent",
+        "ohana-agent",
     )
     executable_path.parent.mkdir(parents=True)
     executable_path.write_text("", encoding="utf-8")
@@ -163,23 +163,23 @@ def test_verify_component_command_accepts_expected_version(
         return subprocess.CompletedProcess(
             command,
             returncode=0,
-            stdout="ohanna-agent 1.0.0\n",
+            stdout="ohana-agent 1.0.0\n",
             stderr="",
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.python_package._run_command",
+        "ohana_installer.python_package._run_command",
         fake_run_command,
     )
 
     result = verify_component_command(
         environment_path=environment_path,
-        command_name="ohanna-agent",
+        command_name="ohana-agent",
         expected_version="1.0.0",
-        component_name="Ohanna-Agent",
+        component_name="Ohana-Agent",
     )
 
-    assert result.name == "Ohanna-Agent"
+    assert result.name == "Ohana-Agent"
     assert result.version == "1.0.0"
     assert result.executable_path == executable_path
 
@@ -191,7 +191,7 @@ def test_verify_component_command_rejects_unexpected_version(
     environment_path = tmp_path / "venv"
     executable_path = get_environment_executable(
         environment_path,
-        "ohanna-agent",
+        "ohana-agent",
     )
     executable_path.parent.mkdir(parents=True)
     executable_path.write_text("", encoding="utf-8")
@@ -205,12 +205,12 @@ def test_verify_component_command_rejects_unexpected_version(
         return subprocess.CompletedProcess(
             command,
             returncode=0,
-            stdout="ohanna-agent 0.9.0\n",
+            stdout="ohana-agent 0.9.0\n",
             stderr="",
         )
 
     monkeypatch.setattr(
-        "ohanna_installer.python_package._run_command",
+        "ohana_installer.python_package._run_command",
         fake_run_command,
     )
 
@@ -220,13 +220,13 @@ def test_verify_component_command_rejects_unexpected_version(
     ):
         verify_component_command(
             environment_path=environment_path,
-            command_name="ohanna-agent",
+            command_name="ohana-agent",
             expected_version="1.0.0",
-            component_name="Ohanna-Agent",
+            component_name="Ohana-Agent",
         )
 
 def test_secured_file_mode_preserves_executability() -> None:
-    from ohanna_installer.python_package import _secured_file_mode
+    from ohana_installer.python_package import _secured_file_mode
 
     assert _secured_file_mode(0o100755) == 0o750
     assert _secured_file_mode(0o100644) == 0o640
@@ -236,9 +236,9 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from ohanna_installer.python_package import secure_installation_tree
+    from ohana_installer.python_package import secure_installation_tree
 
-    installation_path = tmp_path / "ohanna-agent"
+    installation_path = tmp_path / "ohana-agent"
     package_directory = installation_path / "venv" / "lib"
     package_directory.mkdir(parents=True)
     module_path = package_directory / "module.py"
@@ -248,7 +248,7 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
     modes: dict[Path, int] = {}
 
     monkeypatch.setattr(
-        "ohanna_installer.python_package.shutil.chown",
+        "ohana_installer.python_package.shutil.chown",
         lambda path, *, user, group: owners.append(
             (Path(path), user, group)
         ),
@@ -262,7 +262,7 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
     secure_installation_tree(
         installation_path,
         owner="root",
-        group="ohanna",
+        group="ohana",
     )
 
     expected_paths = {
@@ -274,7 +274,7 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
 
     assert {path for path, _, _ in owners} == expected_paths
     assert all(owner == "root" for _, owner, _ in owners)
-    assert all(group == "ohanna" for _, _, group in owners)
+    assert all(group == "ohana" for _, _, group in owners)
     assert modes[installation_path] == 0o750
     assert modes[installation_path / "venv"] == 0o750
     assert modes[package_directory] == 0o750
@@ -284,7 +284,7 @@ def test_secure_installation_tree_applies_owner_group_and_modes(
 def test_secure_installation_tree_rejects_missing_directory(
     tmp_path: Path,
 ) -> None:
-    from ohanna_installer.python_package import secure_installation_tree
+    from ohana_installer.python_package import secure_installation_tree
 
     with pytest.raises(
         PackageInstallationError,
@@ -293,5 +293,5 @@ def test_secure_installation_tree_rejects_missing_directory(
         secure_installation_tree(
             tmp_path / "missing",
             owner="root",
-            group="ohanna",
+            group="ohana",
         )

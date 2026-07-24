@@ -1,7 +1,7 @@
 schema_version: 1
 
 platform:
-  name: Ohanna
+  name: Ohana
   version: "1.0.0"
 
 runtime:
@@ -10,17 +10,17 @@ runtime:
 
 components:
   agent:
-    name: Ohanna-Agent
-    repository: cedric-HAOS/Ohanna-Agent
+    name: Ohana-Agent
+    repository: cedric-HAOS/Ohana-Agent
     version: "1.1.0"
     release_tag: v1.1.0
 
     package:
       type: wheel
-      filename: ohanna_agent-1.1.0-py3-none-any.whl
+      filename: ohana_agent-1.1.0-py3-none-any.whl
 
     configuration:
-      directory: /etc/ohanna-agent
+      directory: /etc/ohana-agent
       files:
         - source: shikamaru.example.yaml
           destination: shikamaru.yaml
@@ -32,46 +32,46 @@ components:
           destination: plugins/dns.yaml
 
     service:
-      filename: ohanna-agent.service
-      description: Ohanna Agent
-      user: ohanna
-      group: ohanna
-      working_directory: /opt/ohanna-agent
-      executable: /opt/ohanna-agent/venv/bin/ohanna-agent
+      filename: ohana-agent.service
+      description: Ohana Agent
+      user: ohana
+      group: ohana
+      working_directory: /opt/ohana-agent
+      executable: /opt/ohana-agent/venv/bin/ohana-agent
       arguments:
         - --config
-        - /etc/ohanna-agent/shikamaru.yaml
+        - /etc/ohana-agent/shikamaru.yaml
         - --infrastructure
-        - /etc/ohanna-agent/infrastructure.yaml
+        - /etc/ohana-agent/infrastructure.yaml
         - --dns-config
-        - /etc/ohanna-agent/plugins/dns.yaml
+        - /etc/ohana-agent/plugins/dns.yaml
 
   vision:
-    name: Ohanna-Vision
-    repository: cedric-HAOS/Ohanna-Vision
+    name: Ohana-Vision
+    repository: cedric-HAOS/Ohana-Vision
     version: "1.1.0"
     release_tag: v1.1.0
 
     package:
       type: wheel
-      filename: ohanna_vision-1.1.0-py3-none-any.whl
+      filename: ohana_vision-1.1.0-py3-none-any.whl
 
     configuration:
-      directory: /etc/ohanna-vision
+      directory: /etc/ohana-vision
       files:
         - source: vision.example.yaml
           destination: vision.yaml
 
     service:
-      filename: ohanna-vision.service
-      description: Ohanna Vision
-      user: ohanna
-      group: ohanna
-      working_directory: /opt/ohanna-vision
-      executable: /opt/ohanna-vision/venv/bin/ohanna-vision
+      filename: ohana-vision.service
+      description: Ohana Vision
+      user: ohana
+      group: ohana
+      working_directory: /opt/ohana-vision
+      executable: /opt/ohana-vision/venv/bin/ohana-vision
       arguments:
         - --config
-        - /etc/ohanna-vision/vision.yaml
+        - /etc/ohana-vision/vision.yaml
 
 compatibility:
   operating_system:

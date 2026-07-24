@@ -139,7 +139,7 @@ def check_github_connectivity(
     request = urllib.request.Request(
         url,
         method="HEAD",
-        headers={"User-Agent": "Ohanna-Installer"},
+        headers={"User-Agent": "Ohana-Installer"},
     )
 
     try:

@@ -1,1 +1,0 @@
-"""Commandes publiques d'Ohanna-Installer."""

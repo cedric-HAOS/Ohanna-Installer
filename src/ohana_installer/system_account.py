@@ -1,4 +1,4 @@
-"""Gestion des comptes système utilisés par les services Ohanna."""
+"""Gestion des comptes système utilisés par les services Ohana."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ class SystemAccountError(RuntimeError):
 
 @dataclass(frozen=True)
 class SystemAccount:
-    """Compte système préparé pour un service Ohanna."""
+    """Compte système préparé pour un service Ohana."""
 
     username: str
     group_name: str

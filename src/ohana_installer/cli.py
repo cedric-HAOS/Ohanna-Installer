@@ -1,22 +1,22 @@
-"""Interface en ligne de commande d'Ohanna-Installer."""
+"""Interface en ligne de commande d'Ohana-Installer."""
 
 from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
 
-from ohanna_installer.commands import install, uninstall, update
-from ohanna_installer.version import __version__
+from ohana_installer.commands import install, uninstall, update
+from ohana_installer.version import __version__
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Construire le parseur principal de la CLI."""
 
     parser = argparse.ArgumentParser(
-        prog="ohanna",
+        prog="ohana",
         description=(
             "Installer, mettre à jour et désinstaller les composants "
-            "officiels de l'écosystème Ohanna."
+            "officiels de l'écosystème Ohana."
         ),
     )
     parser.add_argument(
