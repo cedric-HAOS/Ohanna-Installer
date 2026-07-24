@@ -60,12 +60,16 @@ ohana install
 réalise automatiquement :
 
 * la vérification de l'environnement ;
-* le téléchargement des releases officielles ;
+* la découverte de la dernière release stable d'Ohana-Platform ;
+* la vérification SHA-256 et le téléchargement des releases officielles ;
 * l'installation d'Ohana-Agent ;
 * l'installation d'Ohana-Vision ;
 * la génération des fichiers de configuration ;
 * l'installation des services système ;
 * la validation finale de l'installation.
+
+Le manifeste vérifié est affiché avant toute modification. L'installation demande
+ensuite une confirmation, négative par défaut.
 
 ---
 
@@ -77,7 +81,15 @@ La commande :
 ohana update
 ```
 
-recherche les nouvelles releases officielles et met à jour les composants installés.
+interroge l'API GitHub pour découvrir la dernière release stable
+d'Ohana-Platform. Son manifeste détermine les releases exactes d'Ohana-Agent et
+d'Ohana-Vision à installer.
+
+L'installateur détecte les versions présentes :
+
+* si elles correspondent déjà au manifeste, aucune modification n'est effectuée ;
+* si une version cible est plus ancienne, la rétrogradation automatique est refusée ;
+* sinon, le plan de mise à jour est affiché et doit être confirmé.
 
 ---
 
@@ -90,6 +102,34 @@ ohana uninstall
 ```
 
 supprime proprement les composants installés ainsi que les services associés.
+
+Les services et répertoires concernés sont affichés avant une confirmation
+négative par défaut.
+
+---
+
+## Confirmations et automatisation
+
+Les trois commandes demandent une confirmation avant leur première opération
+modificatrice. Une réponse vide ou négative annule sans erreur et sans modifier le
+système.
+
+L'option `--yes` accepte explicitement cette confirmation pour les scripts :
+
+```bash
+ohana install --yes
+ohana update --yes
+ohana uninstall --yes
+```
+
+---
+
+## Intégrité des téléchargements
+
+Le manifeste Platform, les wheels et les fichiers de configuration sont téléchargés
+exclusivement depuis les assets des releases GitHub officielles. Chaque contenu est
+comparé au digest SHA-256 publié par GitHub, ainsi qu'à sa taille déclarée, avant
+d'être écrit sur disque. Un asset sans digest ou dont le contenu diffère est rejeté.
 
 ---
 
@@ -133,6 +173,10 @@ Validation
 ```
 
 Les installations s'appuient exclusivement sur des **releases officielles**, garantissant un déploiement reproductible et indépendant des branches de développement.
+
+La release Platform agit comme contrat de composition : son manifeste épingle les
+tags et noms d'assets exacts des composants. Seule la sélection de la dernière
+release stable Platform est automatique.
 
 ---
 

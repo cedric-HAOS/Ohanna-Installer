@@ -7,8 +7,14 @@ import tempfile
 from pathlib import Path
 
 from ohana_installer.commands.install import (
+    AGENT_COMMAND_NAME,
+    AGENT_ENVIRONMENT_PATH,
+    AGENT_IDENTIFIER,
     CONFIGURATION_FILE_MODE,
     CONFIGURATION_OWNER,
+    VISION_COMMAND_NAME,
+    VISION_ENVIRONMENT_PATH,
+    VISION_IDENTIFIER,
     ConfigurationInstallationError,
     _check_services,
     _display_check,
@@ -25,11 +31,14 @@ from ohana_installer.commands.install import (
     _reload_systemd,
     _start_services,
 )
+from ohana_installer.confirmation import confirm_action
 from ohana_installer.environment import run_environment_checks
 from ohana_installer.github import DownloadError
-from ohana_installer.manifest import ManifestError
+from ohana_installer.manifest import ManifestError, PlatformManifest
 from ohana_installer.python_package import (
+    InstalledPythonComponent,
     PackageInstallationError,
+    inspect_installed_component,
 )
 from ohana_installer.system_account import SystemAccountError
 from ohana_installer.systemd import (
@@ -43,6 +52,17 @@ from ohana_installer.systemd import (
 )
 
 UPDATE_ERROR = 3
+
+COMPONENT_RUNTIMES = {
+    AGENT_IDENTIFIER: (
+        AGENT_ENVIRONMENT_PATH,
+        AGENT_COMMAND_NAME,
+    ),
+    VISION_IDENTIFIER: (
+        VISION_ENVIRONMENT_PATH,
+        VISION_COMMAND_NAME,
+    ),
+}
 
 
 def configure_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -81,10 +101,110 @@ def _replace_services(
     )
 
 
+def _inspect_installed_components(
+    manifest: PlatformManifest,
+) -> dict[str, InstalledPythonComponent | None]:
+    """Détecter les versions actuellement installées."""
+
+    installed_components: dict[
+        str,
+        InstalledPythonComponent | None,
+    ] = {}
+
+    for component in manifest.components:
+        try:
+            environment_path, command_name = COMPONENT_RUNTIMES[component.identifier]
+        except KeyError as error:
+            raise PackageInstallationError(
+                f"Composant non pris en charge par la mise à jour : {component.identifier}."
+            ) from error
+
+        installed_components[component.identifier] = inspect_installed_component(
+            environment_path=environment_path,
+            command_name=command_name,
+            component_name=component.name,
+        )
+
+    return installed_components
+
+
+def _display_update_plan(
+    manifest: PlatformManifest,
+    installed_components: dict[
+        str,
+        InstalledPythonComponent | None,
+    ],
+) -> None:
+    """Afficher les versions installées et les versions cibles."""
+
+    print("Plan de mise à jour :")
+
+    for component in manifest.components:
+        installed_component = installed_components[component.identifier]
+        installed_version = (
+            installed_component.version if installed_component is not None else "non installé"
+        )
+        print(f"  {component.name}: {installed_version} → {component.version}")
+
+
+def _versions_are_current(
+    manifest: PlatformManifest,
+    installed_components: dict[
+        str,
+        InstalledPythonComponent | None,
+    ],
+) -> bool:
+    return all(
+        installed_components[component.identifier] is not None
+        and installed_components[component.identifier].version == component.version
+        for component in manifest.components
+    )
+
+
+def _numeric_version(version: str) -> tuple[int, int, int] | None:
+    parts = version.split(".")
+
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        return None
+
+    return tuple(int(part) for part in parts)
+
+
+def _reject_downgrades(
+    manifest: PlatformManifest,
+    installed_components: dict[
+        str,
+        InstalledPythonComponent | None,
+    ],
+) -> None:
+    """Refuser une régression de version implicite."""
+
+    for component in manifest.components:
+        installed_component = installed_components[component.identifier]
+
+        if installed_component is None:
+            continue
+
+        installed_version = _numeric_version(installed_component.version)
+        target_version = _numeric_version(component.version)
+
+        if (
+            installed_version is not None
+            and target_version is not None
+            and installed_version > target_version
+        ):
+            raise PackageInstallationError(
+                f"La release Platform cible {component.name} "
+                f"{component.version}, plus ancien que la version "
+                f"installée {installed_component.version}. "
+                "La rétrogradation automatique est refusée."
+            )
+
+
 def run(args: argparse.Namespace) -> int:
     """Exécuter la commande update."""
 
-    del args
+    assume_yes = bool(args.yes)
 
     print("Vérification de l'environnement...")
     print()
@@ -116,6 +236,39 @@ def run(args: argparse.Namespace) -> int:
             print()
 
             _display_manifest(manifest)
+
+            print()
+
+            installed_components = _inspect_installed_components(manifest)
+            _display_update_plan(
+                manifest,
+                installed_components,
+            )
+
+            if _versions_are_current(
+                manifest,
+                installed_components,
+            ):
+                print()
+                print(
+                    "Ohana-Agent et Ohana-Vision utilisent déjà "
+                    "les versions de la dernière release Platform."
+                )
+                return 0
+
+            _reject_downgrades(
+                manifest,
+                installed_components,
+            )
+
+            print()
+
+            if not confirm_action(
+                "Appliquer cette mise à jour Ohana ?",
+                assume_yes=assume_yes,
+            ):
+                print("Mise à jour annulée.")
+                return 0
 
             print()
             print("Téléchargement des composants...")

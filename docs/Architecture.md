@@ -40,7 +40,8 @@ Cette séparation limite le couplage entre les projets et facilite leur évoluti
 Ohana-Installer est responsable de :
 
 * vérifier les prérequis de l'environnement ;
-* télécharger les releases officielles ;
+* découvrir la dernière release stable d'Ohana-Platform ;
+* vérifier et télécharger les assets des releases officielles ;
 * installer les composants ;
 * générer les fichiers de configuration ;
 * créer les services système ;
@@ -84,6 +85,36 @@ Installation
 ```
 
 Cette approche garantit des installations reproductibles et identiques entre les environnements.
+
+---
+
+## Chaîne d'intégrité
+
+La dernière release stable d'Ohana-Platform est découverte avec l'API GitHub. Son
+manifeste, après vérification de son digest SHA-256, constitue le contrat de
+composition de l'installation.
+
+Chaque tag et chaque nom d'asset d'Ohana-Agent et d'Ohana-Vision provient de ce
+manifeste. L'asset correspondant est ensuite résolu dans la release GitHub épinglée,
+puis sa taille et son digest SHA-256 sont vérifiés avant toute écriture sur disque.
+
+```text
+Dernière release Platform
+             │
+             ▼
+Manifeste vérifié et épinglage des composants
+             │
+             ▼
+Releases Agent et Vision
+             │
+             ▼
+Vérification SHA-256 des assets
+             │
+             ▼
+Installation après confirmation
+```
+
+Un asset absent, ambigu, dépourvu de digest ou altéré interrompt l'opération.
 
 ---
 

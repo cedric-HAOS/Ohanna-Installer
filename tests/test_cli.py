@@ -209,7 +209,7 @@ def test_install_fails_when_environment_is_incompatible(
         load_manifest,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -244,7 +244,7 @@ def test_install_fails_when_manifest_download_fails(
         raise_download_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -278,7 +278,7 @@ def test_install_fails_when_manifest_is_invalid(
         raise_manifest_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -398,7 +398,7 @@ def test_install_downloads_and_installs_official_components(
         ),
     )
 
-    assert main(["install"]) == 0
+    assert main(["install", "--yes"]) == 0
 
     output = capsys.readouterr().out
 
@@ -469,7 +469,7 @@ def test_install_fails_when_component_download_fails(
         raise_download_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -535,7 +535,7 @@ def test_install_fails_when_agent_installation_fails(
         install_vision,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -674,7 +674,7 @@ def test_install_fails_when_systemd_reload_fails(
         lambda installed_services: None,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -759,7 +759,7 @@ def test_install_fails_when_vision_installation_fails(
         lambda installed_services: None,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -938,7 +938,7 @@ def test_install_fails_when_systemd_installation_fails(
         raise_systemd_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -1006,7 +1006,7 @@ def test_install_fails_when_systemd_enable_fails(
         raise_enable_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -1074,7 +1074,7 @@ def test_install_fails_when_systemd_start_fails(
         raise_start_error,
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -1154,7 +1154,7 @@ def test_install_fails_when_service_is_not_active(
         ),
     )
 
-    assert main(["install"]) == 3
+    assert main(["install", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -1223,3 +1223,37 @@ def test_installation_group_is_derived_from_service() -> None:
     )
 
     assert _installation_group_name(component) == "ohana"
+
+
+def test_install_cancellation_prevents_component_downloads(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.install.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.install._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt: "non")
+
+    def fail_if_called(manifest: PlatformManifest, directory: Path):
+        raise AssertionError("Les composants ne doivent pas être téléchargés.")
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.install._download_components",
+        fail_if_called,
+    )
+
+    assert main(["install"]) == 0
+    assert "Installation annulée" in capsys.readouterr().out

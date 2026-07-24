@@ -9,6 +9,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
+from ohana_installer.confirmation import confirm_action
 from ohana_installer.environment import EnvironmentCheck, run_environment_checks
 from ohana_installer.github import (
     DownloadedComponent,
@@ -491,7 +492,7 @@ def _install_vision(
 def run(args: argparse.Namespace) -> int:
     """Exécuter la commande install."""
 
-    del args
+    assume_yes = bool(args.yes)
 
     print("Vérification de l'environnement...")
     print()
@@ -523,6 +524,15 @@ def run(args: argparse.Namespace) -> int:
             print()
 
             _display_manifest(manifest)
+
+            print()
+
+            if not confirm_action(
+                "Installer cette release de la plateforme Ohana ?",
+                assume_yes=assume_yes,
+            ):
+                print("Installation annulée.")
+                return 0
 
             print()
             print("Téléchargement des composants...")

@@ -10,6 +10,7 @@ from ohana_installer.commands.install import (
     AGENT_INSTALLATION_PATH,
     VISION_INSTALLATION_PATH,
 )
+from ohana_installer.confirmation import confirm_action
 from ohana_installer.systemd import (
     SYSTEMD_SYSTEM_DIRECTORY,
     SystemdCommandError,
@@ -86,7 +87,7 @@ def _remove_installation_path(path: Path) -> bool:
 def run(args: argparse.Namespace) -> int:
     """Exécuter la commande uninstall."""
 
-    del args
+    assume_yes = bool(args.yes)
 
     print("Désinstallation des composants Ohana...")
     print()
@@ -95,6 +96,28 @@ def run(args: argparse.Namespace) -> int:
         installed_services = tuple(
             service_name for service_name in SERVICE_NAMES if _service_is_installed(service_name)
         )
+        existing_paths = tuple(path for path in INSTALLATION_PATHS if path.exists())
+
+        if not installed_services and not existing_paths:
+            print("✓ Aucune installation Ohana détectée.")
+            return 0
+
+        if installed_services:
+            print("Services à supprimer : " + ", ".join(installed_services))
+
+        if existing_paths:
+            print("Répertoires à supprimer : " + ", ".join(str(path) for path in existing_paths))
+
+        print()
+
+        if not confirm_action(
+            "Confirmer la désinstallation d'Ohana ?",
+            assume_yes=assume_yes,
+        ):
+            print("Désinstallation annulée.")
+            return 0
+
+        print()
 
         if installed_services:
             print("Arrêt des services systemd...")

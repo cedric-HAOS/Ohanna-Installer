@@ -11,6 +11,7 @@ from ohana_installer.python_package import (
     PackageInstallationError,
     create_virtual_environment,
     get_environment_executable,
+    inspect_installed_component,
     install_wheel,
     verify_component_command,
 )
@@ -293,4 +294,83 @@ def test_secure_installation_tree_rejects_missing_directory(
             tmp_path / "missing",
             owner="root",
             group="ohana",
+        )
+
+
+def test_inspect_installed_component_returns_none_when_command_is_missing(
+    tmp_path: Path,
+) -> None:
+    assert (
+        inspect_installed_component(
+            environment_path=tmp_path / "venv",
+            command_name="ohana-agent",
+            component_name="Ohana-Agent",
+        )
+        is None
+    )
+
+
+def test_inspect_installed_component_reads_exact_version(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    environment_path = tmp_path / "venv"
+    executable_path = get_environment_executable(
+        environment_path,
+        "ohana-agent",
+    )
+    executable_path.parent.mkdir(parents=True)
+    executable_path.touch()
+
+    monkeypatch.setattr(
+        "ohana_installer.python_package._run_command",
+        lambda command, *, timeout, error_message: subprocess.CompletedProcess(
+            command,
+            returncode=0,
+            stdout="ohana-agent 1.2.3\n",
+            stderr="",
+        ),
+    )
+
+    result = inspect_installed_component(
+        environment_path=environment_path,
+        command_name="ohana-agent",
+        component_name="Ohana-Agent",
+    )
+
+    assert result is not None
+    assert result.version == "1.2.3"
+    assert result.executable_path == executable_path
+
+
+def test_inspect_installed_component_rejects_ambiguous_version_output(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    environment_path = tmp_path / "venv"
+    executable_path = get_environment_executable(
+        environment_path,
+        "ohana-agent",
+    )
+    executable_path.parent.mkdir(parents=True)
+    executable_path.touch()
+
+    monkeypatch.setattr(
+        "ohana_installer.python_package._run_command",
+        lambda command, *, timeout, error_message: subprocess.CompletedProcess(
+            command,
+            returncode=0,
+            stdout="ohana-agent 1.2.3 (runtime 3.12.0)\n",
+            stderr="",
+        ),
+    )
+
+    with pytest.raises(
+        PackageInstallationError,
+        match="Version illisible",
+    ):
+        inspect_installed_component(
+            environment_path=environment_path,
+            command_name="ohana-agent",
+            component_name="Ohana-Agent",
         )

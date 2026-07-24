@@ -10,7 +10,7 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
 
 ---
 
-# [1.0.0] - 2026-07-24
+# [1.0.0] - À venir
 
 Première version officielle d'**Ohana-Installer**.
 
@@ -34,20 +34,26 @@ Première version officielle d'**Ohana-Installer**.
 ### Installation
 
 * Vérification de l'environnement.
-* Téléchargement des releases officielles.
+* Découverte automatique de la dernière release stable d'Ohana-Platform.
+* Vérification SHA-256 du manifeste, des wheels et des configurations avant écriture.
+* Téléchargement des releases officielles épinglées par le manifeste Platform.
 * Installation d'Ohana-Agent.
 * Installation d'Ohana-Vision.
 * Génération des fichiers de configuration.
 * Installation des services système.
 * Validation automatique de l'installation.
+* Confirmation négative par défaut et option d'automatisation `--yes`.
 
 ### Mise à jour
 
 * Détection des versions installées.
 * Recherche des nouvelles releases.
+* Absence de modification lorsque les versions sont déjà à jour.
+* Refus des rétrogradations automatiques.
 * Mise à jour des composants.
 * Redémarrage automatique des services.
 * Validation de la mise à jour.
+* Confirmation négative par défaut et option d'automatisation `--yes`.
 
 ### Désinstallation
 
@@ -55,7 +61,8 @@ Première version officielle d'**Ohana-Installer**.
 * Désinstallation des composants.
 * Suppression des services système.
 * Nettoyage de l'installation.
-* Suppression optionnelle des fichiers de configuration.
+* Conservation des fichiers de configuration locale.
+* Confirmation négative par défaut et option d'automatisation `--yes`.
 
 ### Documentation
 

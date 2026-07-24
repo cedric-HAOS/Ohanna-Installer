@@ -237,7 +237,7 @@ def test_update_updates_and_restarts_official_components(
         ),
     )
 
-    assert main(["update"]) == 0
+    assert main(["update", "--yes"]) == 0
 
     assert operations == [
         "download-config",
@@ -296,7 +296,7 @@ def test_update_fails_when_environment_is_incompatible(
         load_manifest,
     )
 
-    assert main(["update"]) == 3
+    assert main(["update", "--yes"]) == 3
     assert manifest_called is False
 
     output = capsys.readouterr().out
@@ -347,7 +347,7 @@ def test_update_fails_when_service_stop_fails(
         raise_stop_error,
     )
 
-    assert main(["update"]) == 3
+    assert main(["update", "--yes"]) == 3
 
     output = capsys.readouterr().out
     assert "Commande systemd impossible" in output
@@ -437,8 +437,117 @@ def test_update_fails_when_service_remains_inactive(
         ),
     )
 
-    assert main(["update"]) == 3
+    assert main(["update", "--yes"]) == 3
 
     output = capsys.readouterr().out
     assert "ohana-agent.service est failed" in output
     assert "ohana-vision.service est actif" in output
+
+
+def test_update_cancellation_prevents_component_downloads(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.inspect_installed_component",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt: "non")
+
+    def fail_if_called(manifest: PlatformManifest, directory: Path):
+        raise AssertionError("Les composants ne doivent pas être téléchargés.")
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._download_components",
+        fail_if_called,
+    )
+
+    assert main(["update"]) == 0
+    assert "Mise à jour annulée" in capsys.readouterr().out
+
+
+def test_update_stops_when_installed_versions_are_current(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.inspect_installed_component",
+        lambda **kwargs: InstalledPythonComponent(
+            name=kwargs["component_name"],
+            version="1.1.0",
+            environment_path=Path("/opt/ohana/venv"),
+            executable_path=Path("/opt/ohana/venv/bin/ohana"),
+        ),
+    )
+
+    assert main(["update"]) == 0
+
+    output = capsys.readouterr().out
+    assert "1.1.0 → 1.1.0" in output
+    assert "utilisent déjà" in output
+
+
+def test_update_refuses_automatic_downgrade(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = _build_manifest()
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.run_environment_checks",
+        lambda: (
+            EnvironmentCheck(
+                name="Linux",
+                success=True,
+                message="Compatible.",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update._load_official_manifest",
+        lambda directory: manifest,
+    )
+    monkeypatch.setattr(
+        "ohana_installer.commands.update.inspect_installed_component",
+        lambda **kwargs: InstalledPythonComponent(
+            name=kwargs["component_name"],
+            version="2.0.0",
+            environment_path=Path("/opt/ohana/venv"),
+            executable_path=Path("/opt/ohana/venv/bin/ohana"),
+        ),
+    )
+
+    assert main(["update", "--yes"]) == 3
+    assert "rétrogradation automatique est refusée" in capsys.readouterr().out

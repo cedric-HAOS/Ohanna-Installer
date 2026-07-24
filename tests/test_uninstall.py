@@ -47,7 +47,7 @@ def test_uninstall_removes_services_and_components(
         lambda path: operations.append(f"path:{path}") or True,
     )
 
-    assert main(["uninstall"]) == 0
+    assert main(["uninstall", "--yes"]) == 0
 
     assert operations == [
         "stop:ohana-agent.service",
@@ -84,13 +84,11 @@ def test_uninstall_accepts_already_absent_installation(
         lambda path: False,
     )
 
-    assert main(["uninstall"]) == 0
+    assert main(["uninstall", "--yes"]) == 0
 
     output = capsys.readouterr().out
 
-    assert "Aucun service systemd Ohana installé" in output
-    assert f"{AGENT_INSTALLATION_PATH} déjà absent" in output
-    assert f"{VISION_INSTALLATION_PATH} déjà absent" in output
+    assert "Aucune installation Ohana détectée" in output
 
 
 def test_uninstall_fails_when_service_stop_fails(
@@ -110,7 +108,7 @@ def test_uninstall_fails_when_service_stop_fails(
         raise_stop_error,
     )
 
-    assert main(["uninstall"]) == 3
+    assert main(["uninstall", "--yes"]) == 3
 
     output = capsys.readouterr().out
 
@@ -152,3 +150,25 @@ def test_remove_installation_path_accepts_missing_directory(
     )
 
     assert removed is False
+
+
+def test_uninstall_cancellation_prevents_service_changes(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        "ohana_installer.commands.uninstall._service_is_installed",
+        lambda service_name: True,
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt: "")
+
+    def fail_if_called(service_name: str) -> None:
+        raise AssertionError("Le service ne doit pas être arrêté.")
+
+    monkeypatch.setattr(
+        "ohana_installer.commands.uninstall.stop_systemd_service",
+        fail_if_called,
+    )
+
+    assert main(["uninstall"]) == 0
+    assert "Désinstallation annulée" in capsys.readouterr().out

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -9,6 +10,10 @@ from typing import Any
 import yaml
 
 SUPPORTED_SCHEMA_VERSION = 1
+GITHUB_REPOSITORY_PATTERN = re.compile(
+    r"[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?/"
+    r"[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?"
+)
 
 
 class ManifestError(ValueError):
@@ -257,13 +262,18 @@ def _parse_component(
     if not package.filename.endswith(".whl"):
         raise ManifestError(f"{component_path}.package.filename doit désigner un fichier .whl.")
 
+    if Path(package.filename).name != package.filename:
+        raise ManifestError(
+            f"{component_path}.package.filename doit être un simple nom de fichier."
+        )
+
     repository = _require_non_empty_string(
         component,
         "repository",
         component_path,
     )
 
-    if repository.count("/") != 1:
+    if GITHUB_REPOSITORY_PATTERN.fullmatch(repository) is None:
         raise ManifestError(
             f"{component_path}.repository doit respecter le format owner/repository."
         )
@@ -290,6 +300,22 @@ def _parse_component(
         else None
     )
 
+    version = _require_non_empty_string(
+        component,
+        "version",
+        component_path,
+    )
+    release_tag = _require_non_empty_string(
+        component,
+        "release_tag",
+        component_path,
+    )
+
+    if release_tag != f"v{version}":
+        raise ManifestError(
+            f"{component_path}.release_tag doit correspondre à la version v{version}."
+        )
+
     return ComponentManifest(
         identifier=normalized_identifier,
         name=_require_non_empty_string(
@@ -298,16 +324,8 @@ def _parse_component(
             component_path,
         ),
         repository=repository,
-        version=_require_non_empty_string(
-            component,
-            "version",
-            component_path,
-        ),
-        release_tag=_require_non_empty_string(
-            component,
-            "release_tag",
-            component_path,
-        ),
+        version=version,
+        release_tag=release_tag,
         package=package,
         configuration=configuration,
         service=service,

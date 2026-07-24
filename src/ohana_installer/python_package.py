@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import stat
 import subprocess
@@ -28,6 +29,51 @@ class InstalledPythonComponent:
     version: str
     environment_path: Path
     executable_path: Path
+
+
+def inspect_installed_component(
+    *,
+    environment_path: Path | str,
+    command_name: str,
+    component_name: str,
+    timeout: float = DEFAULT_COMMAND_TIMEOUT,
+) -> InstalledPythonComponent | None:
+    """Lire la version d'un composant installé, s'il existe."""
+
+    target_environment = Path(environment_path)
+    executable_path = get_environment_executable(
+        target_environment,
+        command_name,
+    )
+
+    if not executable_path.is_file():
+        return None
+
+    result = _run_command(
+        [
+            str(executable_path),
+            "--version",
+        ],
+        timeout=timeout,
+        error_message=f"Impossible de lire la version de {component_name}",
+    )
+    output = result.stdout.strip()
+    version_matches = re.findall(
+        r"(?<!\d)(\d+\.\d+\.\d+(?:[A-Za-z0-9.+-]*))(?!\d)",
+        output,
+    )
+
+    if len(version_matches) != 1:
+        raise PackageInstallationError(
+            f"Version illisible pour {component_name} : {output or 'aucune sortie'}."
+        )
+
+    return InstalledPythonComponent(
+        name=component_name,
+        version=version_matches[0],
+        environment_path=target_environment,
+        executable_path=executable_path,
+    )
 
 
 def create_virtual_environment(
@@ -105,39 +151,24 @@ def verify_component_command(
 ) -> InstalledPythonComponent:
     """Vérifier la commande et la version d'un composant installé."""
 
-    target_environment = Path(environment_path)
-    executable_path = get_environment_executable(
-        target_environment,
-        command_name,
+    installed_component = inspect_installed_component(
+        environment_path=environment_path,
+        command_name=command_name,
+        component_name=component_name,
+        timeout=timeout,
     )
 
-    if not executable_path.is_file():
+    if installed_component is None:
         raise PackageInstallationError(
             f"La commande {command_name} est introuvable après installation."
         )
 
-    result = _run_command(
-        [
-            str(executable_path),
-            "--version",
-        ],
-        timeout=timeout,
-        error_message=f"Impossible de vérifier la version de {component_name}",
-    )
-
-    output = result.stdout.strip()
-
-    if expected_version not in output:
+    if installed_component.version != expected_version:
         raise PackageInstallationError(
-            f"Version inattendue pour {component_name} : {output or 'aucune sortie'}."
+            f"Version inattendue pour {component_name} : {installed_component.version}."
         )
 
-    return InstalledPythonComponent(
-        name=component_name,
-        version=expected_version,
-        environment_path=target_environment,
-        executable_path=executable_path,
-    )
+    return installed_component
 
 
 def _secured_file_mode(source_mode: int) -> int:

@@ -226,6 +226,32 @@ def test_parse_manifest_rejects_invalid_repository() -> None:
         parse_manifest(raw_manifest)
 
 
+@pytest.mark.parametrize(
+    "repository",
+    [
+        "../Ohana-Agent",
+        "cedric-HAOS/../Ohana-Agent",
+        "cedric HAOS/Ohana-Agent",
+    ],
+)
+def test_parse_manifest_rejects_unsafe_repository(repository: str) -> None:
+    raw_manifest = {
+        **VALID_MANIFEST,
+        "components": {
+            "agent": {
+                **VALID_MANIFEST["components"]["agent"],
+                "repository": repository,
+            },
+        },
+    }
+
+    with pytest.raises(
+        ManifestError,
+        match="owner/repository",
+    ):
+        parse_manifest(raw_manifest)
+
+
 def test_parse_manifest_rejects_non_wheel_package() -> None:
     raw_manifest = {
         **VALID_MANIFEST,
@@ -264,6 +290,45 @@ def test_parse_manifest_rejects_invalid_wheel_filename() -> None:
     with pytest.raises(
         ManifestError,
         match=r"fichier \.whl",
+    ):
+        parse_manifest(raw_manifest)
+
+
+def test_parse_manifest_rejects_package_path() -> None:
+    raw_manifest = {
+        **VALID_MANIFEST,
+        "components": {
+            "agent": {
+                **VALID_MANIFEST["components"]["agent"],
+                "package": {
+                    "type": "wheel",
+                    "filename": "../agent.whl",
+                },
+            },
+        },
+    }
+
+    with pytest.raises(
+        ManifestError,
+        match="simple nom de fichier",
+    ):
+        parse_manifest(raw_manifest)
+
+
+def test_parse_manifest_rejects_release_tag_version_mismatch() -> None:
+    raw_manifest = {
+        **VALID_MANIFEST,
+        "components": {
+            "agent": {
+                **VALID_MANIFEST["components"]["agent"],
+                "release_tag": "v2.0.0",
+            },
+        },
+    }
+
+    with pytest.raises(
+        ManifestError,
+        match="doit correspondre à la version",
     ):
         parse_manifest(raw_manifest)
 
