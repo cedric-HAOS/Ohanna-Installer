@@ -240,8 +240,8 @@ Les principales ressources sont :
 
 * `ROADMAP.md`
 * `CHANGELOG.md`
-* documentation d'architecture
-* guides d'installation
+* [`docs/Architecture.md`](docs/Architecture.md)
+* [`docs/Installation.md`](docs/Installation.md)
 
 ---
 

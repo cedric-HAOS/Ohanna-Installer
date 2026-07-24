@@ -10,7 +10,7 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
 
 ---
 
-# [1.0.0] - À venir
+# [1.0.0] - 2026-07-24
 
 Première version officielle d'**Ohana-Installer**.
 
@@ -70,7 +70,7 @@ Première version officielle d'**Ohana-Installer**.
 * ROADMAP.
 * CHANGELOG.
 * Documentation d'architecture.
-* Guides d'installation, de mise à jour et de désinstallation.
+* Guide d'installation sur Raspberry Pi, de mise à jour et de désinstallation.
 
 ### Qualité
 

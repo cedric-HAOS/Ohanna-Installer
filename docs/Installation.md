@@ -1,0 +1,209 @@
+# Installation d'Ohana sur Raspberry Pi
+
+Ce guide installe **Ohana-Installer 1.0.0**, puis Ohana-Agent et Ohana-Vision
+depuis leurs releases GitHub officielles.
+
+## Configuration recommandée
+
+* Raspberry Pi 3, 4 ou 5 avec système 64 bits ;
+* Raspberry Pi OS 64 bits basé sur Debian Trixie ;
+* Python 3.13 ou supérieur ;
+* systemd ;
+* un compte autorisé à utiliser `sudo` ;
+* un accès Internet à GitHub et à PyPI pendant l'installation.
+
+Raspberry Pi OS Bookworm fournit normalement une version de Python trop ancienne
+pour Ohana 1.0.0. Pour passer de Bookworm à Trixie, Raspberry Pi recommande une
+nouvelle installation du système plutôt qu'une mise à niveau majeure sur place.
+
+## 1. Vérifier le système
+
+```bash
+cat /etc/os-release
+uname -m
+python3 --version
+```
+
+Les valeurs attendues sont notamment :
+
+* `VERSION_CODENAME=trixie` ;
+* `aarch64` pour un système 64 bits ;
+* Python 3.13 ou supérieur.
+
+## 2. Mettre à jour Raspberry Pi OS
+
+```bash
+sudo apt update
+sudo apt full-upgrade
+sudo apt install -y ca-certificates curl python3.13 python3.13-venv
+```
+
+Redémarrer si une mise à jour du noyau ou du firmware le demande :
+
+```bash
+sudo reboot
+```
+
+## 3. Télécharger la release officielle
+
+```bash
+mkdir -p "$HOME/ohana-installer-1.0.0"
+cd "$HOME/ohana-installer-1.0.0"
+
+curl --fail --location --remote-name \
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/ohana_installer-1.0.0-py3-none-any.whl
+curl --fail --location --remote-name \
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/ohana_installer-1.0.0.tar.gz
+curl --fail --location --remote-name \
+  https://github.com/cedric-HAOS/Ohana-Installer/releases/download/v1.0.0/SHA256SUMS
+```
+
+## 4. Vérifier les artefacts
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+Les deux lignes doivent se terminer par `OK`. Ne pas poursuivre si une somme ne
+correspond pas.
+
+## 5. Installer Ohana-Installer dans un environnement isolé
+
+L'utilisation d'un environnement virtuel évite de modifier le Python géré par
+Raspberry Pi OS.
+
+```bash
+sudo python3.13 -m venv /opt/ohana-installer
+sudo /opt/ohana-installer/bin/python -m pip install \
+  ./ohana_installer-1.0.0-py3-none-any.whl
+sudo ln -sfn /opt/ohana-installer/bin/ohana /usr/local/bin/ohana
+```
+
+Vérifier la commande :
+
+```bash
+ohana --version
+```
+
+Résultat attendu :
+
+```text
+ohana 1.0.0
+```
+
+## 6. Installer la plateforme Ohana
+
+```bash
+sudo ohana install
+```
+
+L'installateur :
+
+1. vérifie Linux, systemd, Python, pip, les privilèges et l'accès à GitHub ;
+2. découvre la dernière release stable d'Ohana-Platform ;
+3. vérifie cryptographiquement le manifeste et tous les téléchargements ;
+4. affiche les versions d'Ohana-Agent et d'Ohana-Vision ;
+5. demande une confirmation avant de modifier le système ;
+6. installe et démarre les deux services systemd.
+
+Répondre `oui` après avoir vérifié les versions affichées. Pour une installation
+automatisée, la confirmation peut être acceptée explicitement :
+
+```bash
+sudo ohana install --yes
+```
+
+## 7. Adapter la configuration
+
+Lors de la première installation, des configurations d'exemple sont créées :
+
+```text
+/etc/ohana-agent/shikamaru.yaml
+/etc/ohana-agent/infrastructure.yaml
+/etc/ohana-agent/plugins/dns.yaml
+/etc/ohana-vision/vision.yaml
+```
+
+Adapter au minimum l'infrastructure, les adresses réseau et les paramètres MQTT
+à l'environnement local. Les mises à jour suivantes conservent ces fichiers.
+
+Après une modification :
+
+```bash
+sudo systemctl restart ohana-vision.service
+sudo systemctl restart ohana-agent.service
+```
+
+## 8. Vérifier l'installation
+
+```bash
+sudo systemctl is-active ohana-agent.service
+sudo systemctl is-active ohana-vision.service
+
+/opt/ohana-agent/venv/bin/ohana-agent --version
+/opt/ohana-vision/venv/bin/ohana-vision --version
+```
+
+Les deux services doivent répondre `active`. L'interface d'Ohana-Vision est
+ensuite disponible par défaut à l'adresse :
+
+```text
+http://ADRESSE_IP_DU_RASPBERRY_PI:8000
+```
+
+Pour connaître l'adresse IP du Raspberry Pi :
+
+```bash
+hostname -I
+```
+
+## Mise à jour
+
+```bash
+sudo ohana update
+```
+
+La commande détecte la dernière release stable d'Ohana-Platform, compare les
+versions installées, affiche le plan de mise à jour et demande confirmation. Elle
+ne modifie rien si les composants sont déjà à jour et refuse les rétrogradations
+automatiques.
+
+L'option `--yes` est disponible pour une automatisation volontaire :
+
+```bash
+sudo ohana update --yes
+```
+
+Cette commande met à jour Ohana-Agent et Ohana-Vision. Une nouvelle version
+d'Ohana-Installer doit être téléchargée et installée séparément.
+
+## Désinstallation
+
+```bash
+sudo ohana uninstall
+```
+
+La commande affiche les services et répertoires concernés, puis demande
+confirmation. Les fichiers de configuration sous `/etc/ohana-agent` et
+`/etc/ohana-vision` sont conservés.
+
+## Diagnostic
+
+État détaillé des services :
+
+```bash
+sudo systemctl status ohana-agent.service --no-pager
+sudo systemctl status ohana-vision.service --no-pager
+```
+
+Derniers journaux :
+
+```bash
+sudo journalctl -u ohana-agent.service -n 100 --no-pager
+sudo journalctl -u ohana-vision.service -n 100 --no-pager
+```
+
+## Références système
+
+* [Documentation officielle de Raspberry Pi OS](https://www.raspberrypi.com/documentation/computers/os.html)
+* [Package Debian Trixie python3.13-venv](https://packages.debian.org/trixie/python3.13-venv)
