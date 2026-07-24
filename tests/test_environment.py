@@ -63,23 +63,23 @@ def test_check_systemd_fails_when_systemctl_is_missing(monkeypatch) -> None:
 def test_check_python_version_succeeds_with_supported_version(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(sys, "version_info", (3, 12, 4))
+    monkeypatch.setattr(sys, "version_info", (3, 13, 4))
 
     result = check_python_version()
 
     assert result.success is True
-    assert "3.12.4" in result.message
+    assert "3.13.4" in result.message
 
 
 def test_check_python_version_fails_with_unsupported_version(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(sys, "version_info", (3, 11, 9))
+    monkeypatch.setattr(sys, "version_info", (3, 12, 9))
 
     result = check_python_version()
 
     assert result.success is False
-    assert "3.12" in result.message
+    assert "3.13" in result.message
 
 
 def test_check_pip_succeeds() -> None:

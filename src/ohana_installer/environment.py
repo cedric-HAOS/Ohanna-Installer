@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-MINIMUM_PYTHON_VERSION = (3, 12)
+MINIMUM_PYTHON_VERSION = (3, 13)
 GITHUB_URL = "https://github.com"
 
 

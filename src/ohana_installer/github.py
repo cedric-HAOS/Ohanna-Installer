@@ -19,7 +19,7 @@ from ohana_installer.manifest import (
 )
 
 DEFAULT_PLATFORM_REPOSITORY = "cedric-HAOS/Ohana-Platform"
-DEFAULT_PLATFORM_RELEASE_TAG = "v1.0.0"
+DEFAULT_PLATFORM_RELEASE_TAG = "v1.0.1"
 DEFAULT_MANIFEST_FILENAME = "release-manifest.yaml"
 DEFAULT_TIMEOUT = 15.0
 

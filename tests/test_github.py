@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from ohana_installer.github import (
+    DEFAULT_PLATFORM_RELEASE_TAG,
     DownloadedComponent,
     DownloadedConfigurationFile,
     DownloadError,
@@ -227,6 +228,7 @@ def test_download_platform_manifest_returns_valid_manifest(
     assert manifest.platform_name == "Ohana"
     assert manifest.platform_version == "1.0.0"
     assert len(manifest.components) == 2
+    assert DEFAULT_PLATFORM_RELEASE_TAG == "v1.0.1"
 
 
 def test_download_platform_manifest_removes_invalid_manifest(

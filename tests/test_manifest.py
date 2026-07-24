@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ohana_installer.environment import MINIMUM_PYTHON_VERSION
 from ohana_installer.manifest import (
     ManifestError,
     build_release_download_url,
@@ -285,7 +286,8 @@ def test_repository_manifest_is_valid() -> None:
     manifest = load_manifest(manifest_path)
 
     assert manifest.platform_name == "Ohana"
-    assert manifest.platform_version == "1.0.0"
+    assert manifest.platform_version == "1.0.1"
+    assert manifest.runtime.minimum_python_version == "3.13"
     assert {component.identifier for component in manifest.components} == {
         "agent",
         "vision",
@@ -302,13 +304,15 @@ def test_repository_manifest_is_valid() -> None:
         if component.identifier == "vision"
     )
 
-    assert agent.version == "1.1.0"
-    assert agent.release_tag == "v1.1.0"
+    assert agent.version == "1.1.1"
+    assert agent.release_tag == "v1.1.1"
     assert agent.package.filename == (
-        "ohana_agent-1.1.0-py3-none-any.whl"
+        "ohana_agent-1.1.1-py3-none-any.whl"
     )
     assert agent.configuration is not None
     assert agent.service is not None
+    assert agent.service.user == "ohana-agent"
+    assert agent.service.group == "ohana-agent"
     assert tuple(
         configuration_file.source
         for configuration_file in agent.configuration.files
@@ -318,17 +322,32 @@ def test_repository_manifest_is_valid() -> None:
         "dns.example.yaml",
     )
 
-    assert vision.version == "1.1.0"
-    assert vision.release_tag == "v1.1.0"
+    assert vision.version == "1.1.1"
+    assert vision.release_tag == "v1.1.1"
     assert vision.package.filename == (
-        "ohana_vision-1.1.0-py3-none-any.whl"
+        "ohana_vision-1.1.1-py3-none-any.whl"
     )
     assert vision.configuration is not None
     assert vision.service is not None
+    assert vision.service.user == "ohana-vision"
+    assert vision.service.group == "ohana-vision"
     assert tuple(
         configuration_file.source
         for configuration_file in vision.configuration.files
     ) == ("vision.example.yaml",)
+
+
+def test_repository_manifest_runtime_matches_installer() -> None:
+    repository_root = Path(__file__).resolve().parents[1]
+    manifest = load_manifest(
+        repository_root / "config" / "release-manifest.yaml"
+    )
+    expected_version = ".".join(
+        str(part) for part in MINIMUM_PYTHON_VERSION
+    )
+
+    assert manifest.runtime.minimum_python_version == expected_version
+
 
 def test_parse_manifest_reads_agent_configuration() -> None:
     manifest = parse_manifest(VALID_MANIFEST)

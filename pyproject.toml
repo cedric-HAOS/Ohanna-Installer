@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
@@ -8,8 +8,9 @@ name = "ohana-installer"
 version = "1.0.0"
 description = "Installateur officiel de l'écosystème Ohana"
 readme = "README.md"
-requires-python = ">=3.12"
-license = { text = "MIT" }
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Cédric Harnois" },
 ]
@@ -25,10 +26,8 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: System :: Installation/Setup",
     "Topic :: System :: Systems Administration",
@@ -87,7 +86,7 @@ fail_under = 80
 
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 line-length = 100
 src = ["src", "tests"]
 

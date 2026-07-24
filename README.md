@@ -14,7 +14,7 @@ Il automatise le déploiement d'une plateforme complète à partir des releases 
 
 # Écosystème
 
-Ohana est composé de quatre projets complémentaires :
+Ohana est composé de cinq projets complémentaires :
 
 | Projet               | Rôle                                                            |
 | -------------------- | --------------------------------------------------------------- |
@@ -22,6 +22,7 @@ Ohana est composé de quatre projets complémentaires :
 | **Ohana-Agent**     | Collecte les observations et surveille l'infrastructure.        |
 | **Ohana-Vision**    | Visualise les observations, l'état de santé et la topologie.    |
 | **Ohana-Installer** | Installe, met à jour et désinstalle les composants officiels.   |
+| **Ohana-House**     | Documente le déploiement domestique de référence.               |
 
 Chaque projet possède une responsabilité clairement définie.
 
@@ -139,6 +140,9 @@ Les installations s'appuient exclusivement sur des **releases officielles**, gar
 
 La version 1.0.0 est conçue pour les environnements Linux utilisant **systemd**.
 
+Prérequis : **Python 3.13 ou supérieur**. Cette contrainte correspond au
+minimum commun exigé par Ohana-Agent et Ohana-Vision.
+
 Les composants installés sont :
 
 * Ohana-Agent ;
@@ -147,6 +151,8 @@ Les composants installés sont :
 ---
 
 # Développement
+
+Utiliser Python 3.13 ou supérieur.
 
 Création d'un environnement virtuel :
 

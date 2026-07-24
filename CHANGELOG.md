@@ -6,6 +6,18 @@ Le format s'inspire de **Keep a Changelog** et respecte le **Versioning Sémanti
 
 ---
 
+# [Unreleased]
+
+## Modifié
+
+* Passage du runtime minimal à Python 3.13.
+* Ciblage du manifeste Ohana-Platform `v1.0.1`.
+* Alignement sur Ohana-Agent et Ohana-Vision `v1.1.1`.
+* Utilisation de comptes systemd dédiés à chaque composant.
+* Modernisation des métadonnées de licence du package.
+
+---
+
 # [1.0.0] - À venir
 
 Première version officielle d'**Ohana-Installer**.
